@@ -93,7 +93,7 @@ export class SceneManager {
      * @param {THREE.Object3D} object
      */
     remove(object) {
-        this.scene.add(object);
+        this.scene.remove(object);
     }
 
     /**
