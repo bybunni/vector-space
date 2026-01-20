@@ -36,19 +36,8 @@ export class PlatformRenderer {
     createPlatformGroup(platform) {
         const group = new THREE.Group();
 
-        // Platform body (cone pointing forward along +X axis)
-        const bodyGeometry = new THREE.ConeGeometry(20, 80, 8);
-        const bodyMaterial = new THREE.MeshStandardMaterial({
-            color: 0xff6600,
-            metalness: 0.3,
-            roughness: 0.7
-        });
-        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-
-        // Rotate cone to point along +X (forward)
-        // Default cone points along +Y, so rotate -90° around Z
-        body.rotation.z = -Math.PI / 2;
-
+        // Platform body - Flying Dorito (delta wing triangle)
+        const body = this.createDoritoGeometry();
         group.add(body);
 
         // Body frame axes (RGB = XYZ = North/Up/East)
@@ -70,6 +59,79 @@ export class PlatformRenderer {
         group.userData.velocityArrow = arrowHelper;
 
         return group;
+    }
+
+    /**
+     * Create flying dorito geometry (delta wing triangle)
+     * @returns {THREE.Mesh}
+     */
+    createDoritoGeometry() {
+        const geometry = new THREE.BufferGeometry();
+
+        // Triangle dimensions
+        const length = 60;  // Nose to tail
+        const width = 70;   // Wingspan
+        const thickness = 4; // Thin like a dorito
+
+        // Define vertices for triangular prism
+        // Top and bottom triangles pointing along +X
+        const vertices = new Float32Array([
+            // Top triangle
+            length, 0, 0,              // Nose (front tip)
+            -length/3, thickness/2, width/2,   // Left wing tip
+            -length/3, thickness/2, -width/2,  // Right wing tip
+
+            // Bottom triangle
+            length, 0, 0,              // Nose (front tip)
+            -length/3, -thickness/2, width/2,  // Left wing tip
+            -length/3, -thickness/2, -width/2, // Right wing tip
+
+            // Back edge vertices (for closing the rear)
+            -length/3, thickness/2, width/2,   // Top left
+            -length/3, thickness/2, -width/2,  // Top right
+            -length/3, -thickness/2, width/2,  // Bottom left
+            -length/3, -thickness/2, -width/2, // Bottom right
+        ]);
+
+        const indices = [
+            // Top face
+            0, 1, 2,
+
+            // Bottom face
+            3, 5, 4,
+
+            // Left side
+            0, 4, 1,
+
+            // Right side
+            0, 2, 5,
+
+            // Back face (closing the tail)
+            6, 8, 7,
+            7, 8, 9
+        ];
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+        geometry.setIndex(indices);
+        geometry.computeVertexNormals();
+
+        // Orange dorito material
+        const material = new THREE.MeshStandardMaterial({
+            color: 0xff6600,
+            metalness: 0.3,
+            roughness: 0.7,
+            side: THREE.DoubleSide
+        });
+
+        const mesh = new THREE.Mesh(geometry, material);
+
+        // Add wireframe edges for better visibility
+        const edges = new THREE.EdgesGeometry(geometry);
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xff9933 });
+        const wireframe = new THREE.LineSegments(edges, lineMaterial);
+        mesh.add(wireframe);
+
+        return mesh;
     }
 
     /**
