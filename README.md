@@ -32,6 +32,7 @@ Sample CSV files are provided in `web/data/`:
 - **test_turning.csv**: Platform executing a 90° turn
 - **test_sensors.csv**: Platform with body-fixed and stabilized sensors, demonstrating pitch changes
 - **test_stabilized_gimbal.csv**: Aerobatic maneuvers showing gimbal stabilization
+- **test_multi_platform.csv**: Three platforms flying in formation with varying roll angles and mixed sensor types
 
 ## CSV Format Specification
 
