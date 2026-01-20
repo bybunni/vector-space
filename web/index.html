@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vector Space - Aerospace Trajectory Visualizer</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Main Canvas -->
+    <canvas id="canvas"></canvas>
+
+    <!-- UI Overlay -->
+    <div id="ui-container">
+        <!-- Header -->
+        <div id="header">
+            <h1>Vector Space</h1>
+            <p class="subtitle">Aerospace Trajectory Visualizer</p>
+        </div>
+
+        <!-- File Upload -->
+        <div id="file-upload-panel" class="panel">
+            <h3>Data Source</h3>
+            <input type="file" id="file-input" accept=".csv" style="display: none;">
+            <button id="load-btn" class="btn">📁 Load CSV File</button>
+            <p id="status-message" class="status">Load a CSV file to begin</p>
+        </div>
+
+        <!-- Time Controls -->
+        <div id="time-controls-panel" class="panel">
+            <h3>Timeline Controls</h3>
+
+            <div class="control-group">
+                <button id="play-pause-btn" class="btn" disabled>▶ Play</button>
+                <button id="reset-btn" class="btn" disabled>⏮ Reset</button>
+            </div>
+
+            <div class="control-group">
+                <label for="time-slider">Time:</label>
+                <input type="range" id="time-slider" min="0" max="100" value="0" disabled>
+            </div>
+
+            <div class="control-group">
+                <label for="speed-select">Speed:</label>
+                <select id="speed-select" disabled>
+                    <option value="0.25">0.25x</option>
+                    <option value="0.5">0.5x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="2">2x</option>
+                    <option value="5">5x</option>
+                    <option value="10">10x</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <p id="time-display" class="time-display">0.000s (00:00:00.000)</p>
+            </div>
+        </div>
+
+        <!-- Info Panel -->
+        <div id="info-panel" class="panel">
+            <h3>Legend</h3>
+            <ul class="legend">
+                <li><span class="legend-color" style="background: #ff6600;"></span> Platform Body</li>
+                <li><span class="legend-color" style="background: #ffff00;"></span> Velocity Vector</li>
+                <li><span class="legend-color" style="background: #00ff00;"></span> Radar Sensor</li>
+                <li><span class="legend-color" style="background: #0088ff;"></span> Camera Sensor</li>
+                <li><span class="legend-color" style="background: #ff8800;"></span> LiDAR Sensor</li>
+            </ul>
+            <h3>Controls</h3>
+            <ul class="controls-help">
+                <li><strong>Left Mouse:</strong> Rotate view</li>
+                <li><strong>Right Mouse:</strong> Pan view</li>
+                <li><strong>Scroll:</strong> Zoom in/out</li>
+            </ul>
+            <h3>Coordinate System</h3>
+            <ul class="legend">
+                <li><span class="legend-color" style="background: #ff0000;"></span> North (X-axis)</li>
+                <li><span class="legend-color" style="background: #00ff00;"></span> Up (Y-axis)</li>
+                <li><span class="legend-color" style="background: #0000ff;"></span> East (Z-axis)</li>
+            </ul>
+        </div>
+
+        <!-- Test Files -->
+        <div id="test-files-panel" class="panel">
+            <h3>Test Files</h3>
+            <p class="info-text">Sample CSV files available in <code>web/data/</code>:</p>
+            <ul class="file-list">
+                <li>test_straight_line.csv</li>
+                <li>test_turning.csv</li>
+                <li>test_sensors.csv</li>
+                <li>test_stabilized_gimbal.csv</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Import Maps for three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <!-- Main Application -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
