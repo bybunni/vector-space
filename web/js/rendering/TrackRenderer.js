@@ -79,10 +79,12 @@ export class TrackRenderer {
             color: color,
             transparent: true,
             opacity: 0.8,
-            linewidth: 2
+            depthTest: false,
+            depthWrite: false
         });
 
         const line = new THREE.Line(geometry, material);
+        line.renderOrder = 999; // Render on top of other objects
         this.sceneManager.add(line);
 
         return line;
@@ -109,11 +111,13 @@ export class TrackRenderer {
             transparent: true,
             opacity: 0.7,
             blending: THREE.AdditiveBlending,
+            depthTest: false,
             depthWrite: false
         });
 
         const sprite = new THREE.Sprite(material);
         sprite.scale.set(200, 200, 1); // Scale for visibility
+        sprite.renderOrder = 1000; // Render on top of lines and other objects
 
         this.sceneManager.add(sprite);
 
