@@ -37,6 +37,9 @@ class VectorSpaceApp {
         this.platformListPanel = null;
         this.simData = null;
 
+        // Camera follow mode
+        this.followedPlatformId = null;
+
         // Double-click detection
         this.clickTimeout = null;
         this.lastClickedPlatformId = null;
@@ -142,6 +145,7 @@ class VectorSpaceApp {
                     sceneManager: this.sceneManager,
                     timeline: this.timeline,
                     onPlatformSelect: (id) => {
+                        this.followedPlatformId = id;
                         if (id) {
                             this.selectPlatform(id);
                         }
@@ -213,6 +217,7 @@ class VectorSpaceApp {
             this.platformDetailsPanel = null;
         }
         this.selectedPlatformId = null;
+        this.followedPlatformId = null;
 
         // Clear platform list panel
         if (this.platformListPanel) {
@@ -262,6 +267,18 @@ class VectorSpaceApp {
 
         if (this.trackRenderer) {
             this.trackRenderer.update(currentTime);
+        }
+
+        // Update camera to follow selected platform
+        if (this.followedPlatformId && this.simData) {
+            const platform = this.simData.getPlatform(this.followedPlatformId);
+            if (platform) {
+                const state = platform.getStateAtTime(currentTime);
+                if (state) {
+                    const position = state.getPosition();
+                    this.sceneManager.controls.target.copy(position);
+                }
+            }
         }
 
         // Update platform details panel

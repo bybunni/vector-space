@@ -14,6 +14,9 @@ export class PlatformListPanel {
         this.onPlatformSelect = onPlatformSelect;
         this.element = null;
         this.listContainer = null;
+        this.selectedId = null;           // Currently followed platform ID
+        this.itemElements = new Map();    // Map of platform ID -> DOM element
+        this.originElement = null;        // Origin item DOM element
 
         this.createPanel();
     }
@@ -67,6 +70,7 @@ export class PlatformListPanel {
         item.textContent = 'Origin';
         item.addEventListener('click', () => this.focusOnOrigin());
         this.listContainer.appendChild(item);
+        this.originElement = item;
     }
 
     /**
@@ -81,15 +85,19 @@ export class PlatformListPanel {
             item.textContent = id;
             item.addEventListener('click', () => this.focusOnPlatform(id));
             this.listContainer.appendChild(item);
+            this.itemElements.set(id, item);
         }
     }
 
     /**
-     * Focus camera on origin (0, 0, 0)
+     * Focus camera on origin (0, 0, 0) and clear selection
      */
     focusOnOrigin() {
         const origin = new THREE.Vector3(0, 0, 0);
         this.sceneManager.focusOn(origin, 1500);
+
+        // Clear selection
+        this.setSelected(null);
 
         if (this.onPlatformSelect) {
             this.onPlatformSelect(null);
@@ -97,27 +105,45 @@ export class PlatformListPanel {
     }
 
     /**
-     * Focus camera on a platform's current position
+     * Select a platform to follow with the camera
      * @param {string} id - Platform ID
      */
     focusOnPlatform(id) {
         const platform = this.simData.getPlatform(id);
         if (!platform) return;
 
-        // Get current time from timeline
-        const currentTime = this.timeline ? this.timeline.getCurrentTime() : null;
-
-        // Get platform state at current time
-        const state = platform.getStateAtTime(currentTime);
-        if (!state) return;
-
-        // Get position and focus camera
-        const position = state.getPosition();
-        this.sceneManager.focusOn(position, 1500);
+        // Set selection (camera following will be handled in main.js onAnimate)
+        this.setSelected(id);
 
         if (this.onPlatformSelect) {
             this.onPlatformSelect(id);
         }
+    }
+
+    /**
+     * Set the selected platform and update visual highlighting
+     * @param {string|null} id - Platform ID or null to clear selection
+     */
+    setSelected(id) {
+        // Remove highlight from previous selection
+        if (this.selectedId && this.itemElements.has(this.selectedId)) {
+            this.itemElements.get(this.selectedId).classList.remove('selected');
+        }
+
+        this.selectedId = id;
+
+        // Add highlight to new selection
+        if (id && this.itemElements.has(id)) {
+            this.itemElements.get(id).classList.add('selected');
+        }
+    }
+
+    /**
+     * Get the currently selected platform ID
+     * @returns {string|null}
+     */
+    getSelectedId() {
+        return this.selectedId;
     }
 
     /**
@@ -127,12 +153,23 @@ export class PlatformListPanel {
     updatePlatformList(newSimData) {
         this.simData = newSimData;
 
-        // Clear existing list
+        // Save current selection to restore if platform still exists
+        const previousSelectedId = this.selectedId;
+
+        // Clear existing list and element references
         this.listContainer.innerHTML = '';
+        this.itemElements.clear();
+        this.originElement = null;
+        this.selectedId = null;
 
         // Re-add origin and platforms
         this.addOriginItem();
         this.populatePlatformList();
+
+        // Restore selection if the same platform ID exists
+        if (previousSelectedId && this.itemElements.has(previousSelectedId)) {
+            this.setSelected(previousSelectedId);
+        }
     }
 
     /**
@@ -181,5 +218,8 @@ export class PlatformListPanel {
         }
         this.element = null;
         this.listContainer = null;
+        this.itemElements.clear();
+        this.originElement = null;
+        this.selectedId = null;
     }
 }
