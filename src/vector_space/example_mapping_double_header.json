@@ -1,0 +1,26 @@
+{
+    "header_rows": 2,
+    "column_mapping": {
+        "[\"Time\", \"Seconds\"]": "timestamp",
+        "[\"Position\", \"North\"]": "pos_north",
+        "[\"Position\", \"East\"]": "pos_east",
+        "[\"Position\", \"Down\"]": "pos_down",
+        "[\"Velocity\", \"North\"]": "vel_north",
+        "[\"Velocity\", \"East\"]": "vel_east",
+        "[\"Velocity\", \"Down\"]": "vel_down",
+        "[\"Orientation\", \"Heading\"]": "yaw",
+        "[\"Orientation\", \"Bank\"]": "roll",
+        "[\"Orientation\", \"Pitch\"]": "pitch"
+    },
+    "entity_id": {
+        "fixed": "platform_1"
+    },
+    "defaults": {
+        "vel_north": 0.0,
+        "vel_east": 0.0,
+        "vel_down": 0.0,
+        "roll": 0.0,
+        "pitch": 0.0,
+        "yaw": 0.0
+    }
+}

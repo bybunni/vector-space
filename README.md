@@ -217,9 +217,11 @@ Internally, coordinates are converted to three.js conventions (Y-up) for renderi
 vector-space/
 ├── src/
 │   └── vector_space/           # Python package
-│       ├── csv_converter.py    # CSV format converter
-│       ├── example_mapping.py  # Example Python config
-│       └── example_mapping.json # Example JSON config
+│       ├── csv_converter.py                  # CSV format converter
+│       ├── example_mapping.py                # Example config (single header)
+│       ├── example_mapping.json              # Example JSON config
+│       ├── example_mapping_double_header.py  # Example config (double header)
+│       └── example_mapping_double_header.json # Example JSON (double header)
 ├── web/                        # Browser application
 │   ├── index.html             # Main HTML file
 │   ├── css/

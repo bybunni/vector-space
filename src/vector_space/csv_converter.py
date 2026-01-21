@@ -259,6 +259,32 @@ def parse_mapping_string(mapping_str: str) -> dict[str, str]:
     return mapping
 
 
+def parse_json_column_mapping(mapping: dict[str, str]) -> dict[str | tuple, str]:
+    """Parse JSON column mapping, converting array-string keys to tuples.
+
+    JSON doesn't support tuple keys, so double-header mappings use string
+    representations like '["Position", "North"]' which need to be converted
+    to tuples.
+
+    Args:
+        mapping: Column mapping dict from JSON
+
+    Returns:
+        Mapping with array-strings converted to tuples
+    """
+    parsed = {}
+    for key, value in mapping.items():
+        if key.startswith("[") and key.endswith("]"):
+            try:
+                parsed_key = tuple(json.loads(key))
+            except json.JSONDecodeError:
+                parsed_key = key
+        else:
+            parsed_key = key
+        parsed[parsed_key] = value
+    return parsed
+
+
 def load_python_config(path: str | Path) -> dict[str, Any]:
     """Load configuration from a Python file.
 
@@ -336,6 +362,11 @@ def main() -> None:
         else:
             with open(config_path) as f:
                 config = json.load(f)
+            # Parse JSON array-string keys to tuples for double headers
+            if "column_mapping" in config:
+                config["column_mapping"] = parse_json_column_mapping(
+                    config["column_mapping"]
+                )
     else:
         config = {}
 
