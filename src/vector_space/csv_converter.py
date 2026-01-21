@@ -9,10 +9,16 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import math
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
+
+
+# WGS84 ellipsoid constants
+WGS84_A = 6378137.0  # Semi-major axis (m)
+WGS84_E2 = 0.00669437999014  # First eccentricity squared
 
 
 # Target column order for output CSV
@@ -40,6 +46,128 @@ OUTPUT_COLUMNS = [
     "mount_yaw",
     "mount_type",
 ]
+
+
+def lla_to_ecef(lat: float, lon: float, alt: float) -> tuple[float, float, float]:
+    """Convert LLA (geodetic) coordinates to ECEF.
+
+    Args:
+        lat: Latitude in radians
+        lon: Longitude in radians
+        alt: Altitude in meters (above WGS84 ellipsoid)
+
+    Returns:
+        Tuple of (X, Y, Z) in meters (ECEF coordinates)
+    """
+    sin_lat = math.sin(lat)
+    cos_lat = math.cos(lat)
+    sin_lon = math.sin(lon)
+    cos_lon = math.cos(lon)
+
+    # Radius of curvature in the prime vertical
+    n = WGS84_A / math.sqrt(1 - WGS84_E2 * sin_lat * sin_lat)
+
+    x = (n + alt) * cos_lat * cos_lon
+    y = (n + alt) * cos_lat * sin_lon
+    z = (n * (1 - WGS84_E2) + alt) * sin_lat
+
+    return x, y, z
+
+
+def ecef_to_ned(
+    x: float, y: float, z: float, ref_lat: float, ref_lon: float, ref_alt: float
+) -> tuple[float, float, float]:
+    """Convert ECEF coordinates to NED relative to a reference point.
+
+    Args:
+        x: ECEF X coordinate in meters
+        y: ECEF Y coordinate in meters
+        z: ECEF Z coordinate in meters
+        ref_lat: Reference point latitude in radians
+        ref_lon: Reference point longitude in radians
+        ref_alt: Reference point altitude in meters
+
+    Returns:
+        Tuple of (north, east, down) in meters relative to reference point
+    """
+    # Get reference point in ECEF
+    x0, y0, z0 = lla_to_ecef(ref_lat, ref_lon, ref_alt)
+
+    # Delta ECEF
+    dx = x - x0
+    dy = y - y0
+    dz = z - z0
+
+    # Precompute trig values
+    sin_lat = math.sin(ref_lat)
+    cos_lat = math.cos(ref_lat)
+    sin_lon = math.sin(ref_lon)
+    cos_lon = math.cos(ref_lon)
+
+    # Rotation from ECEF to NED at reference point
+    north = -sin_lat * cos_lon * dx - sin_lat * sin_lon * dy + cos_lat * dz
+    east = -sin_lon * dx + cos_lon * dy
+    down = -cos_lat * cos_lon * dx - cos_lat * sin_lon * dy - sin_lat * dz
+
+    return north, east, down
+
+
+def convert_lla_to_ned(
+    df: pd.DataFrame, ref_config: dict[str, Any] | str
+) -> pd.DataFrame:
+    """Convert LLA position columns in DataFrame to NED.
+
+    Expects the DataFrame to have columns: pos_lat, pos_lon, pos_alt (mapped names)
+    These will be replaced with: pos_north, pos_east, pos_down
+
+    Args:
+        df: DataFrame with LLA columns (lat/lon in radians, alt in meters)
+        ref_config: Reference point configuration, either:
+            - "first": Use the first data point as reference
+            - dict with "lat", "lon", "alt" keys (in radians/meters)
+
+    Returns:
+        DataFrame with NED position columns
+    """
+    # Determine reference point
+    if ref_config == "first":
+        ref_lat = df["pos_lat"].iloc[0]
+        ref_lon = df["pos_lon"].iloc[0]
+        ref_alt = df["pos_alt"].iloc[0]
+    else:
+        ref_lat = ref_config["lat"]
+        ref_lon = ref_config["lon"]
+        ref_alt = ref_config["alt"]
+
+    # Convert each point
+    north_vals = []
+    east_vals = []
+    down_vals = []
+
+    for _, row in df.iterrows():
+        lat = row["pos_lat"]
+        lon = row["pos_lon"]
+        alt = row["pos_alt"]
+
+        # LLA to ECEF
+        x, y, z = lla_to_ecef(lat, lon, alt)
+
+        # ECEF to NED
+        n, e, d = ecef_to_ned(x, y, z, ref_lat, ref_lon, ref_alt)
+
+        north_vals.append(n)
+        east_vals.append(e)
+        down_vals.append(d)
+
+    # Replace LLA columns with NED columns
+    df["pos_north"] = north_vals
+    df["pos_east"] = east_vals
+    df["pos_down"] = down_vals
+
+    # Remove original LLA columns
+    df = df.drop(columns=["pos_lat", "pos_lon", "pos_alt"])
+
+    return df
 
 
 def flatten_multiindex_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -196,6 +324,10 @@ def convert(
             - entity_id: Dict with either {"column": "col_name"} or {"fixed": "value"}
             - defaults: Dict of default values for missing columns
             - header_rows: Number of header rows (1 or 2, default 1)
+            - coordinate_system: "ned" (default) or "lla" for input coordinates
+            - lla_reference: Reference point for LLA to NED conversion, either:
+                - "first": Use first data point as reference
+                - dict with "lat", "lon", "alt" (radians/meters)
 
     Returns:
         The converted DataFrame
@@ -222,6 +354,17 @@ def convert(
             "entity_id": {"fixed": "platform_1"},
             "defaults": {"roll": 0.0, "pitch": 0.0, "yaw": 0.0}
         }
+
+    Example config for LLA input:
+        {
+            "coordinate_system": "lla",
+            "column_mapping": {
+                "lat": "pos_lat",    # radians
+                "lon": "pos_lon",    # radians
+                "alt": "pos_alt",    # meters
+            },
+            "lla_reference": "first",  # or {"lat": 0.0, "lon": 0.0, "alt": 0.0}
+        }
     """
     # Read input CSV
     header_rows = config.get("header_rows", 1)
@@ -234,6 +377,12 @@ def convert(
     # Apply column mapping
     column_mapping = config.get("column_mapping", {})
     df = apply_column_mapping(df, column_mapping)
+
+    # Convert LLA to NED if coordinate_system is "lla"
+    coordinate_system = config.get("coordinate_system", "ned")
+    if coordinate_system == "lla":
+        lla_reference = config.get("lla_reference", "first")
+        df = convert_lla_to_ned(df, lla_reference)
 
     # Apply defaults
     defaults = config.get("defaults", {})
@@ -351,6 +500,10 @@ def main() -> None:
         action="store_true",
         help="CSV has two header rows (MultiIndex columns)"
     )
+    parser.add_argument(
+        "--lla-reference",
+        help="LLA reference point: 'first' or 'lat,lon,alt' in radians/meters (enables LLA input mode)"
+    )
 
     args = parser.parse_args()
 
@@ -392,6 +545,20 @@ def main() -> None:
 
     if args.double_header:
         config["header_rows"] = 2
+
+    if args.lla_reference:
+        config["coordinate_system"] = "lla"
+        if args.lla_reference == "first":
+            config["lla_reference"] = "first"
+        else:
+            parts = args.lla_reference.split(",")
+            if len(parts) != 3:
+                parser.error("--lla-reference must be 'first' or 'lat,lon,alt'")
+            config["lla_reference"] = {
+                "lat": float(parts[0]),
+                "lon": float(parts[1]),
+                "alt": float(parts[2]),
+            }
 
     # Run conversion
     convert(args.input, args.output, config)
