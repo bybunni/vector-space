@@ -81,6 +81,91 @@ timestamp,entity_type,entity_id,platform_id,pos_north,pos_east,pos_down,vel_nort
 2024-01-20T10:00:01.000Z,platform,p1,p1,1050,500,-102,50,0,-2,0,5,45,,,,,,,,,
 ```
 
+## CSV Converter
+
+A Python utility is included to convert arbitrary CSV files to the Vector Space format.
+
+### Installation
+
+Requires Python 3.12+ and pandas:
+
+```bash
+# Using uv (recommended)
+uv sync
+
+# Or using pip
+pip install pandas
+```
+
+### Usage
+
+#### With a Python config file (recommended)
+
+1. Copy and edit the example mapping file:
+
+```bash
+cp src/vector_space/example_mapping.py my_mapping.py
+# Edit my_mapping.py to match your source CSV columns
+```
+
+2. Run the converter:
+
+```bash
+uv run python -m vector_space.csv_converter input.csv -o output.csv -c my_mapping.py
+```
+
+#### With a JSON config file
+
+```bash
+uv run python -m vector_space.csv_converter input.csv -o output.csv -c mapping.json
+```
+
+#### With command-line arguments
+
+```bash
+uv run python -m vector_space.csv_converter input.csv -o output.csv \
+  -m "time:timestamp,north:pos_north,east:pos_east,down:pos_down,heading:yaw" \
+  --entity-id-column track_id \
+  -d "vel_north:0,vel_east:0,vel_down:0,roll:0,pitch:0"
+```
+
+#### Programmatic usage
+
+```python
+from vector_space.csv_converter import convert
+
+config = {
+    "column_mapping": {
+        "time": "timestamp",
+        "north": "pos_north",
+        "east": "pos_east",
+        "down": "pos_down",
+        "heading": "yaw",
+    },
+    "entity_id": {"column": "track_id"},
+    "defaults": {"roll": 0, "pitch": 0, "vel_north": 0, "vel_east": 0, "vel_down": 0}
+}
+
+convert("my_data.csv", "output.csv", config)
+```
+
+### Config Options
+
+| Key | Description |
+|-----|-------------|
+| `column_mapping` | Dict mapping source column names to target names |
+| `entity_id` | Either `{"column": "col_name"}` or `{"fixed": "value"}` |
+| `defaults` | Default values for missing columns |
+
+### Timestamp Handling
+
+The converter auto-detects timestamp formats:
+- Unix epoch (seconds or milliseconds)
+- ISO 8601 strings
+- Various datetime string formats
+
+All timestamps are converted to ISO 8601 format (`2024-01-20T10:00:00.000Z`).
+
 ## Coordinate System
 
 The application uses the aerospace-standard **NED (North-East-Down)** coordinate system:
@@ -95,6 +180,11 @@ Internally, coordinates are converted to three.js conventions (Y-up) for renderi
 
 ```
 vector-space/
+├── src/
+│   └── vector_space/           # Python package
+│       ├── csv_converter.py    # CSV format converter
+│       ├── example_mapping.py  # Example Python config
+│       └── example_mapping.json # Example JSON config
 ├── web/                        # Browser application
 │   ├── index.html             # Main HTML file
 │   ├── css/

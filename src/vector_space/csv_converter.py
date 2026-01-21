@@ -7,6 +7,7 @@ using user-defined column mappings.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 from pathlib import Path
 from typing import Any
@@ -225,6 +226,41 @@ def parse_mapping_string(mapping_str: str) -> dict[str, str]:
     return mapping
 
 
+def load_python_config(path: str | Path) -> dict[str, Any]:
+    """Load configuration from a Python file.
+
+    The Python file should define a `config` dict variable, e.g.:
+
+        config = {
+            "column_mapping": {
+                "time": "timestamp",
+                "north": "pos_north",
+                ...
+            },
+            "entity_id": {"column": "track_id"},
+            "defaults": {"roll": 0, "pitch": 0, ...}
+        }
+
+    Args:
+        path: Path to the Python config file
+
+    Returns:
+        The config dict from the file
+    """
+    path = Path(path)
+    spec = importlib.util.spec_from_file_location("config_module", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load config from {path}")
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    if not hasattr(module, "config"):
+        raise ValueError(f"Config file {path} must define a 'config' variable")
+
+    return module.config
+
+
 def main() -> None:
     """CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -233,7 +269,7 @@ def main() -> None:
     parser.add_argument("input", help="Input CSV file path")
     parser.add_argument("-o", "--output", required=True, help="Output CSV file path")
     parser.add_argument(
-        "-c", "--config", help="JSON config file path"
+        "-c", "--config", help="Config file path (JSON or Python)"
     )
     parser.add_argument(
         "-m", "--mapping",
@@ -256,8 +292,12 @@ def main() -> None:
 
     # Build config
     if args.config:
-        with open(args.config) as f:
-            config = json.load(f)
+        config_path = Path(args.config)
+        if config_path.suffix == ".py":
+            config = load_python_config(config_path)
+        else:
+            with open(config_path) as f:
+                config = json.load(f)
     else:
         config = {}
 
