@@ -37,6 +37,11 @@ class VectorSpaceApp {
         this.platformListPanel = null;
         this.simData = null;
 
+        // Double-click detection
+        this.clickTimeout = null;
+        this.lastClickedPlatformId = null;
+        this.doubleClickDelay = 300; // ms
+
         // File upload handler
         this.fileUpload = new FileUpload(
             document.getElementById('file-input'),
@@ -291,12 +296,51 @@ class VectorSpaceApp {
         }
 
         if (platformId) {
-            // Platform clicked - show/update panel
-            this.selectPlatform(platformId);
+            // Check for double-click on same platform
+            if (this.clickTimeout && this.lastClickedPlatformId === platformId) {
+                // Double-click detected - center camera on platform
+                clearTimeout(this.clickTimeout);
+                this.clickTimeout = null;
+                this.lastClickedPlatformId = null;
+                this.focusOnPlatform(platformId);
+            } else {
+                // First click - start timer for potential double-click
+                if (this.clickTimeout) {
+                    clearTimeout(this.clickTimeout);
+                }
+                this.lastClickedPlatformId = platformId;
+                this.clickTimeout = setTimeout(() => {
+                    // Single click - show details panel
+                    this.selectPlatform(platformId);
+                    this.clickTimeout = null;
+                    this.lastClickedPlatformId = null;
+                }, this.doubleClickDelay);
+            }
         } else {
-            // Empty space clicked - hide panel
+            // Empty space clicked - clear any pending click and hide panel
+            if (this.clickTimeout) {
+                clearTimeout(this.clickTimeout);
+                this.clickTimeout = null;
+                this.lastClickedPlatformId = null;
+            }
             this.deselectPlatform();
         }
+    }
+
+    /**
+     * Focus camera on a platform's current position
+     * @param {string} platformId
+     */
+    focusOnPlatform(platformId) {
+        const platform = this.simData.getPlatform(platformId);
+        if (!platform) return;
+
+        const currentTime = this.timeline ? this.timeline.getCurrentTime() : null;
+        const state = platform.getStateAtTime(currentTime);
+        if (!state) return;
+
+        const position = state.getPosition();
+        this.sceneManager.focusOn(position, 1500);
     }
 
     /**
