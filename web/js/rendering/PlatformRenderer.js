@@ -178,8 +178,11 @@ export class PlatformRenderer {
                 // Show arrow
                 velocityArrow.visible = true;
 
-                // Set direction (normalized)
+                // Transform world-frame velocity to body-frame for rendering
+                // (arrow is child of rotated group, so needs body-frame direction)
                 const direction = velocity.clone().normalize();
+                const inverseQuat = quaternion.clone().invert();
+                direction.applyQuaternion(inverseQuat);
                 velocityArrow.setDirection(direction);
 
                 // Set length proportional to speed (scale for visibility)
