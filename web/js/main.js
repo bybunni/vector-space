@@ -8,6 +8,7 @@ import { TrackRenderer } from './rendering/TrackRenderer.js';
 import { FileUpload } from './ui/FileUpload.js';
 import { TimeControls } from './ui/TimeControls.js';
 import { PlatformDetailsPanel } from './ui/PlatformDetailsPanel.js';
+import { PlatformListPanel } from './ui/PlatformListPanel.js';
 
 /**
  * Main application class
@@ -33,6 +34,7 @@ class VectorSpaceApp {
         // Platform selection and details panel
         this.selectedPlatformId = null;
         this.platformDetailsPanel = null;
+        this.platformListPanel = null;
         this.simData = null;
 
         // File upload handler
@@ -59,6 +61,16 @@ class VectorSpaceApp {
         if (loadBtn) {
             loadBtn.addEventListener('click', () => {
                 this.fileUpload.selectFile();
+            });
+        }
+
+        // Add platform list toggle button handler
+        const platformListBtn = document.getElementById('platform-list-btn');
+        if (platformListBtn) {
+            platformListBtn.addEventListener('click', () => {
+                if (this.platformListPanel) {
+                    this.platformListPanel.toggle();
+                }
             });
         }
     }
@@ -115,6 +127,29 @@ class VectorSpaceApp {
 
             // Focus camera on first platform
             this.focusCameraOnData(simData);
+
+            // Create or update platform list panel
+            if (this.platformListPanel) {
+                this.platformListPanel.updatePlatformList(simData);
+            } else {
+                this.platformListPanel = new PlatformListPanel({
+                    simData: simData,
+                    sceneManager: this.sceneManager,
+                    timeline: this.timeline,
+                    onPlatformSelect: (id) => {
+                        if (id) {
+                            this.selectPlatform(id);
+                        }
+                    }
+                });
+            }
+            this.platformListPanel.show();
+
+            // Enable platform list toggle button
+            const platformListBtn = document.getElementById('platform-list-btn');
+            if (platformListBtn) {
+                platformListBtn.disabled = false;
+            }
 
             // Update message
             const timeRange = simData.getTimeRange();
@@ -173,6 +208,13 @@ class VectorSpaceApp {
             this.platformDetailsPanel = null;
         }
         this.selectedPlatformId = null;
+
+        // Clear platform list panel
+        if (this.platformListPanel) {
+            this.platformListPanel.dispose();
+            this.platformListPanel = null;
+        }
+
         this.simData = null;
     }
 
