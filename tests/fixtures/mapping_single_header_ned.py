@@ -1,0 +1,18 @@
+"""Python mapping config for single header NED CSV."""
+
+config = {
+    "column_mapping": {
+        "time": "timestamp",
+        "north": "pos_north",
+        "east": "pos_east",
+        "down": "pos_down",
+        "vn": "vel_north",
+        "ve": "vel_east",
+        "vd": "vel_down",
+        "heading": "yaw",
+        "bank": "roll",
+        "elevation": "pitch",
+    },
+    "entity_id": {"column": "track_id"},
+    "defaults": {},
+}

@@ -1,0 +1,20 @@
+"""Python mapping config for single header LLA CSV."""
+
+config = {
+    "coordinate_system": "lla",
+    "column_mapping": {
+        "time": "timestamp",
+        "lat": "pos_lat",
+        "lon": "pos_lon",
+        "alt": "pos_alt",
+        "vn": "vel_north",
+        "ve": "vel_east",
+        "vd": "vel_down",
+        "heading": "yaw",
+        "bank": "roll",
+        "elevation": "pitch",
+    },
+    "lla_reference": "first",
+    "entity_id": {"column": "track_id"},
+    "defaults": {},
+}

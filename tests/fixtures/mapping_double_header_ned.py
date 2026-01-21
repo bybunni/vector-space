@@ -1,0 +1,19 @@
+"""Python mapping config for double header NED CSV."""
+
+config = {
+    "header_rows": 2,
+    "column_mapping": {
+        ("Time", "Seconds"): "timestamp",
+        ("Position", "North"): "pos_north",
+        ("Position", "East"): "pos_east",
+        ("Position", "Down"): "pos_down",
+        ("Velocity", "North"): "vel_north",
+        ("Velocity", "East"): "vel_east",
+        ("Velocity", "Down"): "vel_down",
+        ("Attitude", "Roll"): "roll",
+        ("Attitude", "Pitch"): "pitch",
+        ("Attitude", "Yaw"): "yaw",
+    },
+    "entity_id": {"column": ("Entity", "ID")},
+    "defaults": {},
+}

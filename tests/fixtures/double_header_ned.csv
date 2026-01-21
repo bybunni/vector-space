@@ -1,0 +1,7 @@
+Time,Entity,Position,Position,Position,Velocity,Velocity,Velocity,Attitude,Attitude,Attitude
+Seconds,ID,North,East,Down,North,East,Down,Roll,Pitch,Yaw
+1705746000,platform_1,0,0,0,10,5,0,0,0,45
+1705746001,platform_1,10,5,-1,11,5.5,-0.5,1,0.5,46
+1705746002,platform_1,21,10.5,-2.5,12,6,-1,2,1,47
+1705746003,platform_2,100,50,0,8,4,0,0,0,90
+1705746004,platform_2,108,54,-0.5,8.5,4.2,-0.3,0.5,0.2,91
