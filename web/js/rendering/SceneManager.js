@@ -50,6 +50,13 @@ export class SceneManager {
         // Animation loop
         this.isAnimating = false;
         this.animationCallbacks = [];
+
+        // Click detection
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+        this.clickCallbacks = [];
+        this.clickableObjects = [];
+        this.setupClickHandler();
     }
 
     /**
@@ -78,6 +85,45 @@ export class SceneManager {
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    /**
+     * Set up click handler for scene interactions
+     */
+    setupClickHandler() {
+        this.canvas.addEventListener('click', (event) => {
+            // Calculate mouse position in normalized device coordinates (-1 to +1)
+            const rect = this.canvas.getBoundingClientRect();
+            this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            // Update raycaster
+            this.raycaster.setFromCamera(this.mouse, this.camera);
+
+            // Check for intersections with clickable objects
+            const intersects = this.raycaster.intersectObjects(this.clickableObjects, true);
+
+            // Call all registered callbacks
+            for (const callback of this.clickCallbacks) {
+                callback(intersects);
+            }
+        });
+    }
+
+    /**
+     * Set objects that can be clicked
+     * @param {THREE.Object3D[]} objects
+     */
+    setClickableObjects(objects) {
+        this.clickableObjects = objects;
+    }
+
+    /**
+     * Register click callback
+     * @param {Function} callback - Called with array of intersections
+     */
+    onSceneClick(callback) {
+        this.clickCallbacks.push(callback);
     }
 
     /**

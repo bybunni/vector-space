@@ -314,3 +314,83 @@ code {
 ::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
+
+/* Platform Details Panel */
+#platform-details-panel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    max-width: 280px;
+    z-index: 100;
+    background: rgba(20, 20, 30, 0.95);
+    border: 1px solid rgba(100, 100, 200, 0.6);
+}
+
+#platform-details-panel .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(100, 100, 150, 0.3);
+}
+
+#platform-details-panel .panel-header h3 {
+    margin: 0;
+}
+
+#platform-details-panel .close-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 5px;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+#platform-details-panel .close-btn:hover {
+    color: #ff4444;
+}
+
+#platform-details-panel .details-section {
+    margin-bottom: 12px;
+}
+
+#platform-details-panel .section-header {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(100, 100, 150, 0.2);
+}
+
+#platform-details-panel .details-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+}
+
+#platform-details-panel .details-row.highlight {
+    background: rgba(0, 100, 200, 0.15);
+    margin: 2px -8px;
+    padding: 4px 8px;
+    border-radius: 3px;
+}
+
+#platform-details-panel .details-label {
+    font-size: 12px;
+    color: #aaa;
+}
+
+#platform-details-panel .details-value {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #00d4ff;
+    min-width: 80px;
+    text-align: right;
+}

@@ -36,6 +36,9 @@ export class PlatformRenderer {
     createPlatformGroup(platform) {
         const group = new THREE.Group();
 
+        // Store platform ID for click detection
+        group.userData.platformId = platform.entityId;
+
         // Platform body - Flying Dorito (delta wing triangle)
         const body = this.createDoritoGeometry();
         group.add(body);
@@ -221,5 +224,13 @@ export class PlatformRenderer {
      */
     getPlatformGroup(platformId) {
         return this.platformGroups.get(platformId);
+    }
+
+    /**
+     * Get all platform groups for click detection
+     * @returns {THREE.Group[]}
+     */
+    getAllPlatformGroups() {
+        return Array.from(this.platformGroups.values());
     }
 }

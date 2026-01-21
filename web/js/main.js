@@ -7,6 +7,7 @@ import { SensorRenderer } from './rendering/SensorRenderer.js';
 import { TrackRenderer } from './rendering/TrackRenderer.js';
 import { FileUpload } from './ui/FileUpload.js';
 import { TimeControls } from './ui/TimeControls.js';
+import { PlatformDetailsPanel } from './ui/PlatformDetailsPanel.js';
 
 /**
  * Main application class
@@ -29,6 +30,11 @@ class VectorSpaceApp {
         this.timeline = null;
         this.timeControls = null;
 
+        // Platform selection and details panel
+        this.selectedPlatformId = null;
+        this.platformDetailsPanel = null;
+        this.simData = null;
+
         // File upload handler
         this.fileUpload = new FileUpload(
             document.getElementById('file-input'),
@@ -41,6 +47,9 @@ class VectorSpaceApp {
 
         // Register animation callback
         this.sceneManager.onAnimate((time) => this.onAnimate(time));
+
+        // Set up click handler for platform selection
+        this.sceneManager.onSceneClick((intersects) => this.onSceneClick(intersects));
 
         // Show initial message
         this.showMessage('Load a CSV file to begin');
@@ -76,6 +85,9 @@ class VectorSpaceApp {
             // Clear previous renderers
             this.clearRenderers();
 
+            // Store simulation data
+            this.simData = simData;
+
             // Create renderers
             this.platformRenderer = new PlatformRenderer(this.sceneManager, simData);
             this.sensorRenderer = new SensorRenderer(this.sceneManager, simData);
@@ -85,6 +97,10 @@ class VectorSpaceApp {
                 this.sensorRenderer,
                 this.platformRenderer
             );
+
+            // Set up clickable objects for platform selection
+            const platformGroups = this.platformRenderer.getAllPlatformGroups();
+            this.sceneManager.setClickableObjects(platformGroups);
 
             // Create timeline controller
             this.timeline = new TimelineController(simData);
@@ -150,6 +166,14 @@ class VectorSpaceApp {
             this.trackRenderer.dispose();
             this.trackRenderer = null;
         }
+
+        // Clear platform selection
+        if (this.platformDetailsPanel) {
+            this.platformDetailsPanel.dispose();
+            this.platformDetailsPanel = null;
+        }
+        this.selectedPlatformId = null;
+        this.simData = null;
     }
 
     /**
@@ -192,6 +216,84 @@ class VectorSpaceApp {
         if (this.trackRenderer) {
             this.trackRenderer.update(currentTime);
         }
+
+        // Update platform details panel
+        if (this.platformDetailsPanel && this.platformDetailsPanel.isVisible()) {
+            this.platformDetailsPanel.update(currentTime);
+        }
+    }
+
+    /**
+     * Handle scene click for platform selection
+     * @param {Array} intersects - Array of raycaster intersections
+     */
+    onSceneClick(intersects) {
+        if (!this.simData) return;
+
+        // Find platformId by traversing up the parent chain
+        let platformId = null;
+
+        for (const intersect of intersects) {
+            let object = intersect.object;
+
+            // Traverse up to find platformId in userData
+            while (object) {
+                if (object.userData && object.userData.platformId) {
+                    platformId = object.userData.platformId;
+                    break;
+                }
+                object = object.parent;
+            }
+
+            if (platformId) break;
+        }
+
+        if (platformId) {
+            // Platform clicked - show/update panel
+            this.selectPlatform(platformId);
+        } else {
+            // Empty space clicked - hide panel
+            this.deselectPlatform();
+        }
+    }
+
+    /**
+     * Select a platform and show details panel
+     * @param {string} platformId
+     */
+    selectPlatform(platformId) {
+        // Skip if same platform already selected
+        if (this.selectedPlatformId === platformId && this.platformDetailsPanel) {
+            return;
+        }
+
+        // Dispose existing panel
+        if (this.platformDetailsPanel) {
+            this.platformDetailsPanel.dispose();
+        }
+
+        // Get platform
+        const platform = this.simData.getPlatform(platformId);
+        if (!platform) return;
+
+        // Create new panel
+        this.selectedPlatformId = platformId;
+        this.platformDetailsPanel = new PlatformDetailsPanel(platform, this.simData);
+
+        // Update immediately with current time
+        if (this.timeline) {
+            this.platformDetailsPanel.update(this.timeline.getCurrentTime());
+        }
+    }
+
+    /**
+     * Deselect platform and hide details panel
+     */
+    deselectPlatform() {
+        if (this.platformDetailsPanel) {
+            this.platformDetailsPanel.hide();
+        }
+        this.selectedPlatformId = null;
     }
 }
 
