@@ -1,3 +1,4 @@
+// SensorRenderer v2 - Spherical FOV cap implementation
 import * as THREE from 'three';
 import { CoordinateSystem } from '../core/CoordinateSystem.js';
 
@@ -48,50 +49,234 @@ export class SensorRenderer {
     }
 
     /**
-     * Create FOV pyramid geometry
+     * Compute a point on the spherical cap in sensor-local coordinates
+     * @param {number} az - Azimuth angle in radians
+     * @param {number} el - Elevation angle in radians
+     * @param {number} range - Distance from origin
+     * @returns {THREE.Vector3}
+     */
+    computeSphericalPoint(az, el, range) {
+        // Spherical to Cartesian (+X is boresight, Y is up, Z is right)
+        const cosEl = Math.cos(el);
+        const sinEl = Math.sin(el);
+        const cosAz = Math.cos(az);
+        const sinAz = Math.sin(az);
+
+        const x = range * cosEl * cosAz;
+        const y = range * sinEl;
+        const z = range * cosEl * sinAz;
+
+        return new THREE.Vector3(x, y, z);
+    }
+
+    /**
+     * Generate a 2D grid of points on the spherical cap surface
+     * @param {number} azMin - Min azimuth in radians
+     * @param {number} azMax - Max azimuth in radians
+     * @param {number} elMin - Min elevation in radians
+     * @param {number} elMax - Max elevation in radians
+     * @param {number} range - Distance from origin
+     * @param {number} azSegments - Number of azimuth segments
+     * @param {number} elSegments - Number of elevation segments
+     * @returns {THREE.Vector3[][]} 2D grid of points [azIndex][elIndex]
+     */
+    generateSphericalCapGrid(azMin, azMax, elMin, elMax, range, azSegments, elSegments) {
+        const grid = [];
+        for (let i = 0; i <= azSegments; i++) {
+            const row = [];
+            const t = i / azSegments;
+            const az = azMin + t * (azMax - azMin);
+            for (let j = 0; j <= elSegments; j++) {
+                const s = j / elSegments;
+                const el = elMin + s * (elMax - elMin);
+                row.push(this.computeSphericalPoint(az, el, range));
+            }
+            grid.push(row);
+        }
+        return grid;
+    }
+
+    /**
+     * Generate triangle vertices for the spherical cap (non-indexed)
+     * @param {THREE.Vector3[][]} grid
+     * @param {number} azSegments
+     * @param {number} elSegments
+     * @returns {number[]} Flat array of vertex coordinates
+     */
+    generateCapTriangles(grid, azSegments, elSegments) {
+        const vertices = [];
+        for (let i = 0; i < azSegments; i++) {
+            for (let j = 0; j < elSegments; j++) {
+                const v00 = grid[i][j];
+                const v10 = grid[i + 1][j];
+                const v01 = grid[i][j + 1];
+                const v11 = grid[i + 1][j + 1];
+
+                // Triangle 1: v00, v01, v11
+                vertices.push(v00.x, v00.y, v00.z);
+                vertices.push(v01.x, v01.y, v01.z);
+                vertices.push(v11.x, v11.y, v11.z);
+
+                // Triangle 2: v00, v11, v10
+                vertices.push(v00.x, v00.y, v00.z);
+                vertices.push(v11.x, v11.y, v11.z);
+                vertices.push(v10.x, v10.y, v10.z);
+            }
+        }
+        return vertices;
+    }
+
+    /**
+     * Generate triangle vertices for side faces (apex to cap edges)
+     * @param {THREE.Vector3[][]} grid
+     * @param {THREE.Vector3} apex
+     * @param {number} azSegments
+     * @param {number} elSegments
+     * @returns {number[]} Flat array of vertex coordinates
+     */
+    generateSideTriangles(grid, apex, azSegments, elSegments) {
+        const vertices = [];
+
+        // Bottom edge (elMin, j=0): apex to grid[i][0] - grid[i+1][0]
+        for (let i = 0; i < azSegments; i++) {
+            const v0 = grid[i][0];
+            const v1 = grid[i + 1][0];
+            vertices.push(apex.x, apex.y, apex.z);
+            vertices.push(v0.x, v0.y, v0.z);
+            vertices.push(v1.x, v1.y, v1.z);
+        }
+
+        // Top edge (elMax, j=elSegments): apex to grid[i+1][elSegments] - grid[i][elSegments]
+        for (let i = 0; i < azSegments; i++) {
+            const v0 = grid[i + 1][elSegments];
+            const v1 = grid[i][elSegments];
+            vertices.push(apex.x, apex.y, apex.z);
+            vertices.push(v0.x, v0.y, v0.z);
+            vertices.push(v1.x, v1.y, v1.z);
+        }
+
+        // Left edge (azMin, i=0): apex to grid[0][j+1] - grid[0][j]
+        for (let j = 0; j < elSegments; j++) {
+            const v0 = grid[0][j + 1];
+            const v1 = grid[0][j];
+            vertices.push(apex.x, apex.y, apex.z);
+            vertices.push(v0.x, v0.y, v0.z);
+            vertices.push(v1.x, v1.y, v1.z);
+        }
+
+        // Right edge (azMax, i=azSegments): apex to grid[azSegments][j] - grid[azSegments][j+1]
+        for (let j = 0; j < elSegments; j++) {
+            const v0 = grid[azSegments][j];
+            const v1 = grid[azSegments][j + 1];
+            vertices.push(apex.x, apex.y, apex.z);
+            vertices.push(v0.x, v0.y, v0.z);
+            vertices.push(v1.x, v1.y, v1.z);
+        }
+
+        return vertices;
+    }
+
+    /**
+     * Generate line segment vertices for wireframe edges
+     * @param {THREE.Vector3[][]} grid
+     * @param {THREE.Vector3} apex
+     * @param {number} azSegments
+     * @param {number} elSegments
+     * @returns {number[]} Flat array of line segment coordinates (pairs of vertices)
+     */
+    generateEdgeLines(grid, apex, azSegments, elSegments) {
+        const vertices = [];
+
+        // 4 straight edges from apex to corners
+        const corners = [
+            grid[0][0],                      // bottom-left
+            grid[azSegments][0],             // bottom-right
+            grid[0][elSegments],             // top-left
+            grid[azSegments][elSegments]     // top-right
+        ];
+        for (const corner of corners) {
+            vertices.push(apex.x, apex.y, apex.z, corner.x, corner.y, corner.z);
+        }
+
+        // Bottom curved edge (elMin, j=0)
+        for (let i = 0; i < azSegments; i++) {
+            const v0 = grid[i][0];
+            const v1 = grid[i + 1][0];
+            vertices.push(v0.x, v0.y, v0.z, v1.x, v1.y, v1.z);
+        }
+
+        // Top curved edge (elMax, j=elSegments)
+        for (let i = 0; i < azSegments; i++) {
+            const v0 = grid[i][elSegments];
+            const v1 = grid[i + 1][elSegments];
+            vertices.push(v0.x, v0.y, v0.z, v1.x, v1.y, v1.z);
+        }
+
+        // Left curved edge (azMin, i=0)
+        for (let j = 0; j < elSegments; j++) {
+            const v0 = grid[0][j];
+            const v1 = grid[0][j + 1];
+            vertices.push(v0.x, v0.y, v0.z, v1.x, v1.y, v1.z);
+        }
+
+        // Right curved edge (azMax, i=azSegments)
+        for (let j = 0; j < elSegments; j++) {
+            const v0 = grid[azSegments][j];
+            const v1 = grid[azSegments][j + 1];
+            vertices.push(v0.x, v0.y, v0.z, v1.x, v1.y, v1.z);
+        }
+
+        return vertices;
+    }
+
+    /**
+     * Create FOV geometry with spherical cap boundary
      * @param {Sensor} sensor
      * @returns {THREE.Mesh}
      */
     createFOVGeometry(sensor) {
-        // FOV pyramid points along +X axis (forward)
+        // FOV cone points along +X axis (forward)
         const azFovRad = THREE.MathUtils.degToRad(sensor.azimuthFov);
         const elFovRad = THREE.MathUtils.degToRad(sensor.elevationFov);
+        const range = sensor.rangeMax;
 
-        const length = sensor.rangeMax;
+        const azMin = -azFovRad / 2;
+        const azMax = azFovRad / 2;
+        const elMin = -elFovRad / 2;
+        const elMax = elFovRad / 2;
 
-        // Calculate pyramid dimensions at max range
-        const width = 2 * length * Math.tan(azFovRad / 2);
-        const height = 2 * length * Math.tan(elFovRad / 2);
+        // Tessellation resolution (degrees per segment)
+        const resolutionDegrees = 5;
+        const azSpanDeg = sensor.azimuthFov;
+        const elSpanDeg = sensor.elevationFov;
+        const azSegments = Math.max(2, Math.ceil(azSpanDeg / resolutionDegrees));
+        const elSegments = Math.max(2, Math.ceil(elSpanDeg / resolutionDegrees));
 
-        // Create pyramid geometry
-        // Apex at origin, opening along +X axis
+        const apex = new THREE.Vector3(0, 0, 0);
+
+        // Generate grid of points on spherical cap
+        const grid = this.generateSphericalCapGrid(azMin, azMax, elMin, elMax, range, azSegments, elSegments);
+
+        // Debug: Verify spherical coordinates
+        const center = grid[Math.floor(azSegments/2)][Math.floor(elSegments/2)];
+        const corner = grid[0][0];
+        console.log(`Sensor ${sensor.entityId} FOV geometry debug:`);
+        console.log(`  Range: ${range}, AzFOV: ${sensor.azimuthFov}°, ElFOV: ${sensor.elevationFov}°`);
+        console.log(`  Segments: ${azSegments} az x ${elSegments} el`);
+        console.log(`  Center vertex: (${center.x.toFixed(1)}, ${center.y.toFixed(1)}, ${center.z.toFixed(1)})`);
+        console.log(`  Center distance from origin: ${center.length().toFixed(1)}`);
+        console.log(`  Corner vertex: (${corner.x.toFixed(1)}, ${corner.y.toFixed(1)}, ${corner.z.toFixed(1)})`);
+        console.log(`  Corner distance from origin: ${corner.length().toFixed(1)}`);
+        console.log(`  Depth difference (center.x - corner.x): ${(center.x - corner.x).toFixed(1)}`);
+
+        // Generate triangle vertices (non-indexed geometry)
+        const capVertices = this.generateCapTriangles(grid, azSegments, elSegments);
+        const sideVertices = this.generateSideTriangles(grid, apex, azSegments, elSegments);
+        const allVertices = new Float32Array([...sideVertices, ...capVertices]);
+
+        // Create mesh geometry
         const geometry = new THREE.BufferGeometry();
-
-        const vertices = new Float32Array([
-            // Apex (origin)
-            0, 0, 0,
-
-            // Far rectangle corners (at rangeMax along +X)
-            length, height/2, width/2,   // Top-right
-            length, height/2, -width/2,  // Top-left
-            length, -height/2, -width/2, // Bottom-left
-            length, -height/2, width/2,  // Bottom-right
-        ]);
-
-        const indices = [
-            // Triangular faces from apex to far rectangle
-            0, 1, 2,  // Top face
-            0, 2, 3,  // Left face
-            0, 3, 4,  // Bottom face
-            0, 4, 1,  // Right face
-
-            // Far rectangle (two triangles)
-            1, 2, 3,
-            1, 3, 4
-        ];
-
-        geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-        geometry.setIndex(indices);
+        geometry.setAttribute('position', new THREE.BufferAttribute(allVertices, 3));
         geometry.computeVertexNormals();
 
         // Material (semi-transparent, color-coded by sensor type)
@@ -100,16 +285,24 @@ export class SensorRenderer {
             color: color,
             transparent: true,
             opacity: 0.2,
-            side: THREE.DoubleSide
+            side: THREE.DoubleSide,
+            depthWrite: false
         });
 
         const mesh = new THREE.Mesh(geometry, material);
 
-        // Add wireframe for clarity
-        const wireframeGeometry = new THREE.EdgesGeometry(geometry);
-        const wireframeMaterial = new THREE.LineBasicMaterial({ color: color });
-        const wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
-        mesh.add(wireframe);
+        // Generate edge lines for wireframe
+        const edgeVertices = new Float32Array(this.generateEdgeLines(grid, apex, azSegments, elSegments));
+        const edgeGeometry = new THREE.BufferGeometry();
+        edgeGeometry.setAttribute('position', new THREE.BufferAttribute(edgeVertices, 3));
+
+        const edgeMaterial = new THREE.LineBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: 0.6
+        });
+        const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+        mesh.add(edges);
 
         return mesh;
     }
