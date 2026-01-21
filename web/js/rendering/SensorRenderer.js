@@ -257,18 +257,6 @@ export class SensorRenderer {
         // Generate grid of points on spherical cap
         const grid = this.generateSphericalCapGrid(azMin, azMax, elMin, elMax, range, azSegments, elSegments);
 
-        // Debug: Verify spherical coordinates
-        const center = grid[Math.floor(azSegments/2)][Math.floor(elSegments/2)];
-        const corner = grid[0][0];
-        console.log(`Sensor ${sensor.entityId} FOV geometry debug:`);
-        console.log(`  Range: ${range}, AzFOV: ${sensor.azimuthFov}°, ElFOV: ${sensor.elevationFov}°`);
-        console.log(`  Segments: ${azSegments} az x ${elSegments} el`);
-        console.log(`  Center vertex: (${center.x.toFixed(1)}, ${center.y.toFixed(1)}, ${center.z.toFixed(1)})`);
-        console.log(`  Center distance from origin: ${center.length().toFixed(1)}`);
-        console.log(`  Corner vertex: (${corner.x.toFixed(1)}, ${corner.y.toFixed(1)}, ${corner.z.toFixed(1)})`);
-        console.log(`  Corner distance from origin: ${corner.length().toFixed(1)}`);
-        console.log(`  Depth difference (center.x - corner.x): ${(center.x - corner.x).toFixed(1)}`);
-
         // Generate triangle vertices (non-indexed geometry)
         const capVertices = this.generateCapTriangles(grid, azSegments, elSegments);
         const sideVertices = this.generateSideTriangles(grid, apex, azSegments, elSegments);
