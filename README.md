@@ -156,6 +156,41 @@ convert("my_data.csv", "output.csv", config)
 | `column_mapping` | Dict mapping source column names to target names |
 | `entity_id` | Either `{"column": "col_name"}` or `{"fixed": "value"}` |
 | `defaults` | Default values for missing columns |
+| `header_rows` | Number of header rows: 1 (default) or 2 for double headers |
+
+### Double Header CSVs (MultiIndex)
+
+For CSVs with two header rows (category + sub-category):
+
+```csv
+Time,Position,Position,Position,Velocity,Velocity
+Seconds,North,East,Down,North,East
+1705746000,0,0,-50,10,5
+```
+
+Use tuples in your mapping:
+
+```python
+config = {
+    "header_rows": 2,
+    "column_mapping": {
+        ("Time", "Seconds"): "timestamp",
+        ("Position", "North"): "pos_north",
+        ("Position", "East"): "pos_east",
+        ("Position", "Down"): "pos_down",
+        ("Velocity", "North"): "vel_north",
+        ("Velocity", "East"): "vel_east",
+    },
+    "entity_id": {"fixed": "platform_1"},
+    "defaults": {"roll": 0, "pitch": 0, "yaw": 0}
+}
+```
+
+CLI usage with double headers:
+
+```bash
+uv run python -m vector_space.csv_converter input.csv -o output.csv -c mapping.py --double-header
+```
 
 ### Timestamp Handling
 

@@ -3,6 +3,13 @@
 Copy this file and modify to match your source CSV columns.
 """
 
+# =============================================================================
+# SINGLE HEADER EXAMPLE (default)
+# =============================================================================
+# Use this for CSVs with a single header row like:
+#   time,track_id,north,east,down,heading
+#   1705746000,ship1,0,0,-50,45
+
 config = {
     # Map source column names to target column names
     # Only include columns that exist in your source CSV
@@ -36,3 +43,41 @@ config = {
         "yaw": 0.0,
     },
 }
+
+
+# =============================================================================
+# DOUBLE HEADER EXAMPLE (MultiIndex columns)
+# =============================================================================
+# Use this for CSVs with two header rows like:
+#   Time,Position,Position,Position,Velocity,Velocity,Velocity
+#   Seconds,North,East,Down,North,East,Down
+#   1705746000,0,0,-50,10,5,0
+
+# config = {
+#     # Set header_rows to 2 for double headers
+#     "header_rows": 2,
+#
+#     # Map using tuples: (row1_value, row2_value)
+#     "column_mapping": {
+#         ("Time", "Seconds"): "timestamp",
+#         ("Position", "North"): "pos_north",
+#         ("Position", "East"): "pos_east",
+#         ("Position", "Down"): "pos_down",
+#         ("Velocity", "North"): "vel_north",
+#         ("Velocity", "East"): "vel_east",
+#         ("Velocity", "Down"): "vel_down",
+#         ("Orientation", "Heading"): "yaw",
+#         ("Orientation", "Bank"): "roll",
+#         ("Orientation", "Pitch"): "pitch",
+#     },
+#
+#     # Entity ID can also use tuple for double header columns
+#     # "entity_id": {"column": ("Meta", "TrackID")},
+#     "entity_id": {"fixed": "platform_1"},
+#
+#     "defaults": {
+#         "roll": 0.0,
+#         "pitch": 0.0,
+#         "yaw": 0.0,
+#     },
+# }

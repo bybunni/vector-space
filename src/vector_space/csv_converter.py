@@ -42,17 +42,40 @@ OUTPUT_COLUMNS = [
 ]
 
 
-def apply_column_mapping(df: pd.DataFrame, mapping: dict[str, str]) -> pd.DataFrame:
+def flatten_multiindex_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Flatten MultiIndex columns to single level using tuple representation.
+
+    Args:
+        df: DataFrame with MultiIndex columns
+
+    Returns:
+        DataFrame with flattened column names as tuples
+    """
+    if isinstance(df.columns, pd.MultiIndex):
+        # Keep columns as tuples for mapping
+        df.columns = [tuple(col) for col in df.columns]
+    return df
+
+
+def apply_column_mapping(
+    df: pd.DataFrame, mapping: dict[str | tuple, str]
+) -> pd.DataFrame:
     """Rename source columns to target columns based on mapping.
 
     Args:
         df: Input DataFrame
-        mapping: Dict mapping source column names to target column names
+        mapping: Dict mapping source column names (str or tuple) to target column names
 
     Returns:
         DataFrame with renamed columns
     """
-    rename_map = {src: dst for src, dst in mapping.items() if src in df.columns}
+    rename_map = {}
+    for src, dst in mapping.items():
+        # Handle tuple keys for multi-level headers
+        if isinstance(src, (list, tuple)):
+            src = tuple(src)
+        if src in df.columns:
+            rename_map[src] = dst
     return df.rename(columns=rename_map)
 
 
@@ -172,31 +195,41 @@ def convert(
             - column_mapping: Dict mapping source to target column names
             - entity_id: Dict with either {"column": "col_name"} or {"fixed": "value"}
             - defaults: Dict of default values for missing columns
+            - header_rows: Number of header rows (1 or 2, default 1)
 
     Returns:
         The converted DataFrame
 
-    Example config:
+    Example config for single header:
         {
             "column_mapping": {
                 "time": "timestamp",
                 "north": "pos_north",
-                "east": "pos_east",
-                "down": "pos_down",
             },
             "entity_id": {"column": "track_id"},
-            "defaults": {
-                "vel_north": 0.0,
-                "vel_east": 0.0,
-                "vel_down": 0.0,
-                "roll": 0.0,
-                "pitch": 0.0,
-                "yaw": 0.0,
-            }
+            "defaults": {"roll": 0.0, "pitch": 0.0, "yaw": 0.0}
+        }
+
+    Example config for double header (MultiIndex):
+        {
+            "header_rows": 2,
+            "column_mapping": {
+                ("Time", "Seconds"): "timestamp",
+                ("Position", "North"): "pos_north",
+                ("Position", "East"): "pos_east",
+                ("Position", "Down"): "pos_down",
+            },
+            "entity_id": {"fixed": "platform_1"},
+            "defaults": {"roll": 0.0, "pitch": 0.0, "yaw": 0.0}
         }
     """
     # Read input CSV
-    df = pd.read_csv(input_csv)
+    header_rows = config.get("header_rows", 1)
+    if header_rows == 2:
+        df = pd.read_csv(input_csv, header=[0, 1])
+        df = flatten_multiindex_columns(df)
+    else:
+        df = pd.read_csv(input_csv)
 
     # Apply column mapping
     column_mapping = config.get("column_mapping", {})
@@ -287,6 +320,11 @@ def main() -> None:
         "-d", "--defaults",
         help="Default values as 'col:value,col:value,...' (e.g., 'roll:0,pitch:0')"
     )
+    parser.add_argument(
+        "--double-header",
+        action="store_true",
+        help="CSV has two header rows (MultiIndex columns)"
+    )
 
     args = parser.parse_args()
 
@@ -320,6 +358,9 @@ def main() -> None:
                 except ValueError:
                     defaults[col.strip()] = val.strip()
         config["defaults"] = defaults
+
+    if args.double_header:
+        config["header_rows"] = 2
 
     # Run conversion
     convert(args.input, args.output, config)
