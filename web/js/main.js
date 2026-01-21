@@ -4,6 +4,7 @@ import { SceneManager } from './rendering/SceneManager.js';
 import { GridRenderer } from './rendering/GridRenderer.js';
 import { PlatformRenderer } from './rendering/PlatformRenderer.js';
 import { SensorRenderer } from './rendering/SensorRenderer.js';
+import { TrackRenderer } from './rendering/TrackRenderer.js';
 import { FileUpload } from './ui/FileUpload.js';
 import { TimeControls } from './ui/TimeControls.js';
 
@@ -22,6 +23,7 @@ class VectorSpaceApp {
         // Dynamic renderers (will be created after data load)
         this.platformRenderer = null;
         this.sensorRenderer = null;
+        this.trackRenderer = null;
 
         // Timeline controller (will be created after data load)
         this.timeline = null;
@@ -77,6 +79,12 @@ class VectorSpaceApp {
             // Create renderers
             this.platformRenderer = new PlatformRenderer(this.sceneManager, simData);
             this.sensorRenderer = new SensorRenderer(this.sceneManager, simData);
+            this.trackRenderer = new TrackRenderer(
+                this.sceneManager,
+                simData,
+                this.sensorRenderer,
+                this.platformRenderer
+            );
 
             // Create timeline controller
             this.timeline = new TimelineController(simData);
@@ -137,6 +145,11 @@ class VectorSpaceApp {
             this.sensorRenderer.dispose();
             this.sensorRenderer = null;
         }
+
+        if (this.trackRenderer) {
+            this.trackRenderer.dispose();
+            this.trackRenderer = null;
+        }
     }
 
     /**
@@ -174,6 +187,10 @@ class VectorSpaceApp {
 
         if (this.sensorRenderer) {
             this.sensorRenderer.update(currentTime);
+        }
+
+        if (this.trackRenderer) {
+            this.trackRenderer.update(currentTime);
         }
     }
 }
