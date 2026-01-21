@@ -20,6 +20,10 @@ config = {
     # Coordinate system: "lla" for lat/lon/alt input (radians/meters)
     "coordinate_system": "lla",
 
+    # Angle units: "degrees" (default) or "radians"
+    # Set to "radians" if your input angles (roll, pitch, yaw) are in radians
+    # "angle_units": "radians",
+
     # Map source column names to target column names
     # For LLA input, map to pos_lat, pos_lon, pos_alt (intermediate columns)
     "column_mapping": {

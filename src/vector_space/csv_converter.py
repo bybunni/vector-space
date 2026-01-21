@@ -20,6 +20,9 @@ import pandas as pd
 WGS84_A = 6378137.0  # Semi-major axis (m)
 WGS84_E2 = 0.00669437999014  # First eccentricity squared
 
+# Angle columns that may need conversion from radians to degrees
+ANGLE_COLUMNS = ["roll", "pitch", "yaw", "mount_roll", "mount_pitch", "mount_yaw"]
+
 
 # Target column order for output CSV
 OUTPUT_COLUMNS = [
@@ -167,6 +170,26 @@ def convert_lla_to_ned(
     # Remove original LLA columns
     df = df.drop(columns=["pos_lat", "pos_lon", "pos_alt"])
 
+    return df
+
+
+def convert_angles_to_degrees(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert angle columns from radians to degrees.
+
+    Converts any of the standard angle columns (roll, pitch, yaw, mount_roll,
+    mount_pitch, mount_yaw) that exist in the DataFrame from radians to degrees.
+
+    Args:
+        df: DataFrame with angle columns in radians
+
+    Returns:
+        DataFrame with angle columns converted to degrees
+    """
+    for col in ANGLE_COLUMNS:
+        if col in df.columns:
+            # Only convert numeric columns
+            if pd.api.types.is_numeric_dtype(df[col]):
+                df[col] = df[col].apply(lambda x: math.degrees(x) if pd.notna(x) else x)
     return df
 
 
@@ -328,6 +351,7 @@ def convert(
             - lla_reference: Reference point for LLA to NED conversion, either:
                 - "first": Use first data point as reference
                 - dict with "lat", "lon", "alt" (radians/meters)
+            - angle_units: "degrees" (default) or "radians" for input angles
 
     Returns:
         The converted DataFrame
@@ -365,6 +389,16 @@ def convert(
             },
             "lla_reference": "first",  # or {"lat": 0.0, "lon": 0.0, "alt": 0.0}
         }
+
+    Example config with angles in radians:
+        {
+            "angle_units": "radians",
+            "column_mapping": {
+                "roll_rad": "roll",
+                "pitch_rad": "pitch",
+                "yaw_rad": "yaw",
+            },
+        }
     """
     # Read input CSV
     header_rows = config.get("header_rows", 1)
@@ -383,6 +417,11 @@ def convert(
     if coordinate_system == "lla":
         lla_reference = config.get("lla_reference", "first")
         df = convert_lla_to_ned(df, lla_reference)
+
+    # Convert angles from radians to degrees if angle_units is "radians"
+    angle_units = config.get("angle_units", "degrees")
+    if angle_units == "radians":
+        df = convert_angles_to_degrees(df)
 
     # Apply defaults
     defaults = config.get("defaults", {})
@@ -504,6 +543,11 @@ def main() -> None:
         "--lla-reference",
         help="LLA reference point: 'first' or 'lat,lon,alt' in radians/meters (enables LLA input mode)"
     )
+    parser.add_argument(
+        "--angles-in-radians",
+        action="store_true",
+        help="Input angles (roll, pitch, yaw) are in radians; convert to degrees for output"
+    )
 
     args = parser.parse_args()
 
@@ -559,6 +603,9 @@ def main() -> None:
                 "lon": float(parts[1]),
                 "alt": float(parts[2]),
             }
+
+    if args.angles_in_radians:
+        config["angle_units"] = "radians"
 
     # Run conversion
     convert(args.input, args.output, config)

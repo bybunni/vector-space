@@ -12,9 +12,11 @@ import pandas as pd
 import pytest
 
 from vector_space.csv_converter import (
+    ANGLE_COLUMNS,
     WGS84_A,
     WGS84_E2,
     convert,
+    convert_angles_to_degrees,
     convert_lla_to_ned,
     ecef_to_ned,
     lla_to_ecef,
@@ -798,3 +800,348 @@ class TestEdgeCases:
 
         # Second point west of first
         assert result["pos_east"].iloc[1] < 0
+
+
+# =============================================================================
+# Unit Tests: convert_angles_to_degrees()
+# =============================================================================
+
+
+class TestConvertAnglesToDegrees:
+    """Unit tests for convert_angles_to_degrees() function."""
+
+    def test_converts_all_angle_columns(self) -> None:
+        """Test that all angle columns are converted."""
+        df = pd.DataFrame(
+            {
+                "roll": [0.0, math.pi / 4, math.pi / 2],
+                "pitch": [0.0, math.pi / 6, math.pi / 3],
+                "yaw": [0.0, math.pi, 2 * math.pi],
+            }
+        )
+
+        result = convert_angles_to_degrees(df.copy())
+
+        assert abs(result["roll"].iloc[1] - 45.0) < 1e-6
+        assert abs(result["roll"].iloc[2] - 90.0) < 1e-6
+        assert abs(result["pitch"].iloc[1] - 30.0) < 1e-6
+        assert abs(result["pitch"].iloc[2] - 60.0) < 1e-6
+        assert abs(result["yaw"].iloc[1] - 180.0) < 1e-6
+        assert abs(result["yaw"].iloc[2] - 360.0) < 1e-6
+
+    def test_preserves_non_angle_columns(self) -> None:
+        """Test that non-angle columns are not modified."""
+        df = pd.DataFrame(
+            {
+                "roll": [math.pi / 4],
+                "pos_north": [100.0],
+                "vel_east": [50.0],
+            }
+        )
+
+        result = convert_angles_to_degrees(df.copy())
+
+        assert result["pos_north"].iloc[0] == 100.0
+        assert result["vel_east"].iloc[0] == 50.0
+
+    def test_handles_missing_angle_columns(self) -> None:
+        """Test that missing angle columns don't cause errors."""
+        df = pd.DataFrame(
+            {
+                "roll": [math.pi / 2],
+                "pos_north": [100.0],
+            }
+        )
+
+        result = convert_angles_to_degrees(df.copy())
+
+        assert abs(result["roll"].iloc[0] - 90.0) < 1e-6
+        assert "pitch" not in result.columns
+        assert "yaw" not in result.columns
+
+    def test_handles_mount_angles(self) -> None:
+        """Test that mount angle columns are also converted."""
+        df = pd.DataFrame(
+            {
+                "mount_roll": [math.pi / 4],
+                "mount_pitch": [math.pi / 6],
+                "mount_yaw": [math.pi / 2],
+            }
+        )
+
+        result = convert_angles_to_degrees(df.copy())
+
+        assert abs(result["mount_roll"].iloc[0] - 45.0) < 1e-6
+        assert abs(result["mount_pitch"].iloc[0] - 30.0) < 1e-6
+        assert abs(result["mount_yaw"].iloc[0] - 90.0) < 1e-6
+
+    def test_handles_nan_values(self) -> None:
+        """Test that NaN values are preserved."""
+        df = pd.DataFrame(
+            {
+                "roll": [math.pi / 4, float("nan"), math.pi / 2],
+            }
+        )
+
+        result = convert_angles_to_degrees(df.copy())
+
+        assert abs(result["roll"].iloc[0] - 45.0) < 1e-6
+        assert pd.isna(result["roll"].iloc[1])
+        assert abs(result["roll"].iloc[2] - 90.0) < 1e-6
+
+    def test_negative_angles(self) -> None:
+        """Test conversion of negative angles."""
+        df = pd.DataFrame(
+            {
+                "roll": [-math.pi / 4],
+                "pitch": [-math.pi / 2],
+            }
+        )
+
+        result = convert_angles_to_degrees(df.copy())
+
+        assert abs(result["roll"].iloc[0] - (-45.0)) < 1e-6
+        assert abs(result["pitch"].iloc[0] - (-90.0)) < 1e-6
+
+
+# =============================================================================
+# Integration Tests: convert() with angle_units
+# =============================================================================
+
+
+class TestConvertWithAngleUnits:
+    """Integration tests for convert() with angle_units config."""
+
+    def test_angles_in_radians_converted(self, tmp_path: Path) -> None:
+        """Test that angles in radians are converted to degrees."""
+        csv_path = tmp_path / "angles_radians.csv"
+        # Create CSV with angles in radians (pi/4 = 45 deg, pi/2 = 90 deg)
+        csv_path.write_text(
+            "time,north,east,down,roll,pitch,yaw\n"
+            f"1000,0,0,0,{math.pi/4},{math.pi/6},{math.pi/2}\n"
+        )
+
+        output_csv = tmp_path / "output.csv"
+        config: dict[str, Any] = {
+            "angle_units": "radians",
+            "column_mapping": {
+                "time": "timestamp",
+                "north": "pos_north",
+                "east": "pos_east",
+                "down": "pos_down",
+                "roll": "roll",
+                "pitch": "pitch",
+                "yaw": "yaw",
+            },
+            "entity_id": {"fixed": "test"},
+        }
+
+        result = convert(csv_path, output_csv, config)
+
+        assert abs(result["roll"].iloc[0] - 45.0) < 1e-6
+        assert abs(result["pitch"].iloc[0] - 30.0) < 1e-6
+        assert abs(result["yaw"].iloc[0] - 90.0) < 1e-6
+
+    def test_angles_in_degrees_not_converted(self, tmp_path: Path) -> None:
+        """Test that angles in degrees (default) are not converted."""
+        csv_path = tmp_path / "angles_degrees.csv"
+        csv_path.write_text("time,north,east,down,roll,pitch,yaw\n1000,0,0,0,45,30,90\n")
+
+        output_csv = tmp_path / "output.csv"
+        config: dict[str, Any] = {
+            # angle_units defaults to "degrees"
+            "column_mapping": {
+                "time": "timestamp",
+                "north": "pos_north",
+                "east": "pos_east",
+                "down": "pos_down",
+                "roll": "roll",
+                "pitch": "pitch",
+                "yaw": "yaw",
+            },
+            "entity_id": {"fixed": "test"},
+        }
+
+        result = convert(csv_path, output_csv, config)
+
+        assert result["roll"].iloc[0] == 45
+        assert result["pitch"].iloc[0] == 30
+        assert result["yaw"].iloc[0] == 90
+
+    def test_explicit_degrees_not_converted(self, tmp_path: Path) -> None:
+        """Test that explicit angle_units='degrees' doesn't convert."""
+        csv_path = tmp_path / "angles_degrees.csv"
+        csv_path.write_text("time,north,east,down,roll,pitch,yaw\n1000,0,0,0,45,30,90\n")
+
+        output_csv = tmp_path / "output.csv"
+        config: dict[str, Any] = {
+            "angle_units": "degrees",
+            "column_mapping": {
+                "time": "timestamp",
+                "north": "pos_north",
+                "east": "pos_east",
+                "down": "pos_down",
+                "roll": "roll",
+                "pitch": "pitch",
+                "yaw": "yaw",
+            },
+            "entity_id": {"fixed": "test"},
+        }
+
+        result = convert(csv_path, output_csv, config)
+
+        assert result["roll"].iloc[0] == 45
+        assert result["pitch"].iloc[0] == 30
+        assert result["yaw"].iloc[0] == 90
+
+    def test_lla_with_radians_angles(self, tmp_path: Path) -> None:
+        """Test LLA conversion combined with radian angles."""
+        csv_path = tmp_path / "lla_radians.csv"
+        csv_path.write_text(
+            "time,lat,lon,alt,roll,pitch,yaw\n"
+            f"1000,0.6981317,-1.2217305,100,{math.pi/4},{math.pi/6},{math.pi/2}\n"
+        )
+
+        output_csv = tmp_path / "output.csv"
+        config: dict[str, Any] = {
+            "coordinate_system": "lla",
+            "angle_units": "radians",
+            "column_mapping": {
+                "time": "timestamp",
+                "lat": "pos_lat",
+                "lon": "pos_lon",
+                "alt": "pos_alt",
+                "roll": "roll",
+                "pitch": "pitch",
+                "yaw": "yaw",
+            },
+            "lla_reference": "first",
+            "entity_id": {"fixed": "test"},
+        }
+
+        result = convert(csv_path, output_csv, config)
+
+        # Position should be at origin
+        assert abs(result["pos_north"].iloc[0]) < 1e-6
+        # Angles should be converted to degrees
+        assert abs(result["roll"].iloc[0] - 45.0) < 1e-6
+        assert abs(result["pitch"].iloc[0] - 30.0) < 1e-6
+        assert abs(result["yaw"].iloc[0] - 90.0) < 1e-6
+
+
+# =============================================================================
+# CLI Tests: --angles-in-radians
+# =============================================================================
+
+
+class TestCliAnglesInRadians:
+    """CLI tests for --angles-in-radians flag."""
+
+    def test_angles_in_radians_flag(self, tmp_path: Path) -> None:
+        """Test --angles-in-radians CLI flag."""
+        csv_path = tmp_path / "angles.csv"
+        csv_path.write_text(
+            "time,north,east,down,roll,pitch,yaw\n"
+            f"1000,0,0,0,{math.pi/4},{math.pi/6},{math.pi/2}\n"
+        )
+
+        output_csv = tmp_path / "output.csv"
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "vector_space.csv_converter",
+                str(csv_path),
+                "-o",
+                str(output_csv),
+                "-m",
+                "time:timestamp,north:pos_north,east:pos_east,down:pos_down,"
+                "roll:roll,pitch:pitch,yaw:yaw",
+                "--entity-id-fixed",
+                "test",
+                "--angles-in-radians",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, f"CLI failed: {result.stderr}"
+
+        df = pd.read_csv(output_csv)
+        assert abs(df["roll"].iloc[0] - 45.0) < 1e-6
+        assert abs(df["pitch"].iloc[0] - 30.0) < 1e-6
+        assert abs(df["yaw"].iloc[0] - 90.0) < 1e-6
+
+    def test_without_angles_flag_no_conversion(self, tmp_path: Path) -> None:
+        """Test that without --angles-in-radians, no conversion happens."""
+        csv_path = tmp_path / "angles.csv"
+        csv_path.write_text("time,north,east,down,roll,pitch,yaw\n1000,0,0,0,45,30,90\n")
+
+        output_csv = tmp_path / "output.csv"
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "vector_space.csv_converter",
+                str(csv_path),
+                "-o",
+                str(output_csv),
+                "-m",
+                "time:timestamp,north:pos_north,east:pos_east,down:pos_down,"
+                "roll:roll,pitch:pitch,yaw:yaw",
+                "--entity-id-fixed",
+                "test",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, f"CLI failed: {result.stderr}"
+
+        df = pd.read_csv(output_csv)
+        assert df["roll"].iloc[0] == 45
+        assert df["pitch"].iloc[0] == 30
+        assert df["yaw"].iloc[0] == 90
+
+    def test_lla_reference_with_angles_in_radians(self, tmp_path: Path) -> None:
+        """Test combining --lla-reference and --angles-in-radians."""
+        csv_path = tmp_path / "lla_angles.csv"
+        csv_path.write_text(
+            "time,lat,lon,alt,roll,pitch,yaw\n"
+            f"1000,0.6981317,-1.2217305,100,{math.pi/4},{math.pi/6},{math.pi/2}\n"
+        )
+
+        output_csv = tmp_path / "output.csv"
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "vector_space.csv_converter",
+                str(csv_path),
+                "-o",
+                str(output_csv),
+                "-m",
+                "time:timestamp,lat:pos_lat,lon:pos_lon,alt:pos_alt,"
+                "roll:roll,pitch:pitch,yaw:yaw",
+                "--entity-id-fixed",
+                "test",
+                "--lla-reference",
+                "first",
+                "--angles-in-radians",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, f"CLI failed: {result.stderr}"
+
+        df = pd.read_csv(output_csv)
+        # Angles converted
+        assert abs(df["roll"].iloc[0] - 45.0) < 1e-6
+        assert abs(df["pitch"].iloc[0] - 30.0) < 1e-6
+        assert abs(df["yaw"].iloc[0] - 90.0) < 1e-6
+        # Position at origin
+        assert abs(df["pos_north"].iloc[0]) < 1e-6
