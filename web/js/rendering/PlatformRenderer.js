@@ -14,6 +14,9 @@ export class PlatformRenderer {
         // Map of platform ID to THREE.Group
         this.platformGroups = new Map();
 
+        // Platform visual scale (does not affect sensors)
+        this.platformScale = 1.0;
+
         this.createPlatformObjects();
     }
 
@@ -42,6 +45,10 @@ export class PlatformRenderer {
         // Platform body - Flying Dorito (delta wing triangle)
         const body = this.createDoritoGeometry();
         group.add(body);
+
+        // Store body mesh reference for scaling
+        group.userData.bodyMesh = body;
+        body.scale.set(this.platformScale, this.platformScale, this.platformScale);
 
         // Body frame axes (RGB = XYZ = North/Up/East)
         const axesHelper = new THREE.AxesHelper(100);
@@ -235,5 +242,27 @@ export class PlatformRenderer {
      */
     getAllPlatformGroups() {
         return Array.from(this.platformGroups.values());
+    }
+
+    /**
+     * Set platform visual scale (does not affect sensors)
+     * @param {number} scale
+     */
+    setScale(scale) {
+        this.platformScale = scale;
+        for (const group of this.platformGroups.values()) {
+            const bodyMesh = group.userData.bodyMesh;
+            if (bodyMesh) {
+                bodyMesh.scale.set(scale, scale, scale);
+            }
+        }
+    }
+
+    /**
+     * Get current platform scale
+     * @returns {number}
+     */
+    getScale() {
+        return this.platformScale;
     }
 }

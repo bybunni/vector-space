@@ -40,6 +40,10 @@ class VectorSpaceApp {
         // Camera follow mode
         this.followedPlatformId = null;
 
+        // Platform scale slider
+        this.platformScaleSlider = null;
+        this.platformScaleDisplay = null;
+
         // Double-click detection
         this.clickTimeout = null;
         this.lastClickedPlatformId = null;
@@ -81,6 +85,17 @@ class VectorSpaceApp {
                 }
             });
         }
+
+        // Initialize platform scale slider
+        this.platformScaleSlider = document.getElementById('platform-scale-slider');
+        this.platformScaleDisplay = document.getElementById('platform-scale-display');
+        this.platformScaleSlider.addEventListener('input', () => {
+            const scale = parseFloat(this.platformScaleSlider.value);
+            if (this.platformRenderer) {
+                this.platformRenderer.setScale(scale);
+            }
+            this.platformScaleDisplay.textContent = `${scale.toFixed(1)}x`;
+        });
     }
 
     /**
@@ -160,6 +175,9 @@ class VectorSpaceApp {
                 platformListBtn.disabled = false;
             }
 
+            // Enable platform scale slider
+            this.platformScaleSlider.disabled = false;
+
             // Update message
             const timeRange = simData.getTimeRange();
             const duration = (timeRange.end - timeRange.start) / 1000;
@@ -224,6 +242,11 @@ class VectorSpaceApp {
             this.platformListPanel.dispose();
             this.platformListPanel = null;
         }
+
+        // Reset platform scale slider
+        this.platformScaleSlider.value = 1;
+        this.platformScaleSlider.disabled = true;
+        this.platformScaleDisplay.textContent = '1.0x';
 
         this.simData = null;
     }
