@@ -161,21 +161,26 @@ export class TrajectoryRibbonRenderer {
             const sample = samples[i];
             let wingDir;
 
-            if (sample.vel && sample.vel.lengthSq() > 0.01) {
-                // Use velocity for wing direction
-                wingDir = this.computeWingDirection(sample.vel);
-            } else if (i < maxSamples - 1) {
-                // Estimate direction from position difference
+            // Always use position differences to compute wing direction
+            // This ensures the ribbon is perpendicular to actual movement,
+            // even if velocity data is incorrect or missing
+            if (i < maxSamples - 1) {
+                // Use direction to next sample
                 const nextSample = samples[i + 1];
                 const dir = new THREE.Vector3().subVectors(nextSample.pos, sample.pos);
                 wingDir = this.computeWingDirection(dir);
             } else if (i > 0) {
-                // Use previous direction
+                // Last sample: use direction from previous sample
                 const prevSample = samples[i - 1];
                 const dir = new THREE.Vector3().subVectors(sample.pos, prevSample.pos);
                 wingDir = this.computeWingDirection(dir);
             } else {
-                wingDir = new THREE.Vector3(1, 0, 0);
+                // Single sample: fall back to velocity or default
+                if (sample.vel && sample.vel.lengthSq() > 0.01) {
+                    wingDir = this.computeWingDirection(sample.vel);
+                } else {
+                    wingDir = new THREE.Vector3(1, 0, 0);
+                }
             }
 
             // Compute left and right wing points
