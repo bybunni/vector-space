@@ -264,9 +264,9 @@ export class SensorRenderer {
         const azSegmentsArc = Math.ceil(azArcLength / maxArcLengthPerSegment);
         const elSegmentsArc = Math.ceil(elArcLength / maxArcLengthPerSegment);
 
-        // Use the larger of the two (finer resolution), capped at 64 segments
-        const azSegments = Math.min(64, Math.max(2, azSegmentsAngular, azSegmentsArc));
-        const elSegments = Math.min(64, Math.max(2, elSegmentsAngular, elSegmentsArc));
+        // Use the larger of the two (finer resolution), capped at 128 segments
+        const azSegments = Math.min(128, Math.max(2, azSegmentsAngular, azSegmentsArc));
+        const elSegments = Math.min(128, Math.max(2, elSegmentsAngular, elSegmentsArc));
 
         const apex = new THREE.Vector3(0, 0, 0);
 
