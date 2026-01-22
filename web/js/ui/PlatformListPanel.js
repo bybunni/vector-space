@@ -55,6 +55,9 @@ export class PlatformListPanel {
         this.listContainer.className = 'platform-list-container';
         this.element.appendChild(this.listContainer);
 
+        // Add column headers
+        this.addColumnHeaders();
+
         // Add origin item
         this.addOriginItem();
 
@@ -63,6 +66,38 @@ export class PlatformListPanel {
 
         // Add to document
         document.body.appendChild(this.element);
+    }
+
+    /**
+     * Add column headers for checkboxes
+     */
+    addColumnHeaders() {
+        const headerRow = document.createElement('div');
+        headerRow.className = 'platform-list-header';
+
+        const nameLabel = document.createElement('span');
+        nameLabel.className = 'platform-header-name';
+        nameLabel.textContent = 'Platform';
+
+        const checkboxLabels = document.createElement('div');
+        checkboxLabels.className = 'platform-header-checkboxes';
+
+        const fovLabel = document.createElement('span');
+        fovLabel.className = 'platform-header-label';
+        fovLabel.textContent = 'FOV';
+        fovLabel.title = 'Show sensor FOV';
+
+        const ribbonLabel = document.createElement('span');
+        ribbonLabel.className = 'platform-header-label';
+        ribbonLabel.textContent = 'Trail';
+        ribbonLabel.title = 'Show trajectory ribbon';
+
+        checkboxLabels.appendChild(fovLabel);
+        checkboxLabels.appendChild(ribbonLabel);
+        headerRow.appendChild(nameLabel);
+        headerRow.appendChild(checkboxLabels);
+
+        this.listContainer.appendChild(headerRow);
     }
 
     /**
@@ -211,7 +246,8 @@ export class PlatformListPanel {
         this.fovStates.clear();
         this.ribbonStates.clear();
 
-        // Re-add origin and platforms
+        // Re-add column headers, origin and platforms
+        this.addColumnHeaders();
         this.addOriginItem();
         this.populatePlatformList();
 
