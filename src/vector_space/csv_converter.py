@@ -332,6 +332,45 @@ def format_output(
     return df[OUTPUT_COLUMNS]
 
 
+def generate_sensor_rows(
+    sensors_config: dict[str, list[dict[str, Any]]],
+    first_timestamp: str,
+) -> pd.DataFrame:
+    """Generate sensor rows from config.
+
+    Args:
+        sensors_config: Dict mapping platform_id -> list of sensor definitions
+        first_timestamp: Timestamp to use for all sensor rows
+
+    Returns:
+        DataFrame with sensor rows in OUTPUT_COLUMNS format
+    """
+    rows = []
+    for platform_id, sensors in sensors_config.items():
+        for sensor in sensors:
+            row = {col: "" for col in OUTPUT_COLUMNS}
+            row["timestamp"] = first_timestamp
+            row["entity_type"] = "sensor"
+            row["entity_id"] = sensor["entity_id"]
+            row["platform_id"] = platform_id
+            # Copy sensor-specific fields
+            for field in [
+                "sensor_type",
+                "azimuth_fov",
+                "elevation_fov",
+                "range_min",
+                "range_max",
+                "mount_roll",
+                "mount_pitch",
+                "mount_yaw",
+                "mount_type",
+            ]:
+                if field in sensor:
+                    row[field] = sensor[field]
+            rows.append(row)
+    return pd.DataFrame(rows, columns=OUTPUT_COLUMNS)
+
+
 def convert(
     input_csv: str | Path,
     output_csv: str | Path,
@@ -430,6 +469,14 @@ def convert(
     # Format output
     entity_id_config = config.get("entity_id", {"fixed": "p1"})
     df = format_output(df, entity_id_config)
+
+    # Generate sensor rows if configured
+    sensors_config = config.get("sensors", {})
+    if sensors_config:
+        first_timestamp = df["timestamp"].iloc[0]
+        sensor_df = generate_sensor_rows(sensors_config, first_timestamp)
+        # Prepend sensor rows to platform data
+        df = pd.concat([sensor_df, df], ignore_index=True)
 
     # Write output
     df.to_csv(output_csv, index=False)

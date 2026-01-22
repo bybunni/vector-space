@@ -42,6 +42,24 @@ config = {
         "pitch": 0.0,
         "yaw": 0.0,
     },
+    # Optional: Define sensors to attach to platforms
+    # Useful when source CSV has no sensor data
+    # "sensors": {
+    #     "platform_1": [  # platform_id -> list of sensors
+    #         {
+    #             "entity_id": "radar_1",
+    #             "sensor_type": "radar",
+    #             "azimuth_fov": 60,
+    #             "elevation_fov": 40,
+    #             "range_min": 100,
+    #             "range_max": 800,
+    #             "mount_roll": 0,
+    #             "mount_pitch": -15,
+    #             "mount_yaw": 0,
+    #             "mount_type": "body_fixed",
+    #         },
+    #     ],
+    # },
 }
 
 
