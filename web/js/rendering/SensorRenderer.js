@@ -245,12 +245,28 @@ export class SensorRenderer {
         const elMin = -elFovRad / 2;
         const elMax = elFovRad / 2;
 
-        // Tessellation resolution (degrees per segment)
-        const resolutionDegrees = 5;
+        // Tessellation resolution - adaptive based on both angle and range
+        const maxDegreesPerSegment = 5;      // Angular resolution cap
+        const maxArcLengthPerSegment = 5000; // Physical arc length cap (units)
+
         const azSpanDeg = sensor.azimuthFov;
         const elSpanDeg = sensor.elevationFov;
-        const azSegments = Math.max(2, Math.ceil(azSpanDeg / resolutionDegrees));
-        const elSegments = Math.max(2, Math.ceil(elSpanDeg / resolutionDegrees));
+
+        // Arc length at max range: arc = range * angle_radians
+        const azArcLength = range * azFovRad;
+        const elArcLength = range * elFovRad;
+
+        // Segments needed to meet angular resolution
+        const azSegmentsAngular = Math.ceil(azSpanDeg / maxDegreesPerSegment);
+        const elSegmentsAngular = Math.ceil(elSpanDeg / maxDegreesPerSegment);
+
+        // Segments needed to meet arc length resolution
+        const azSegmentsArc = Math.ceil(azArcLength / maxArcLengthPerSegment);
+        const elSegmentsArc = Math.ceil(elArcLength / maxArcLengthPerSegment);
+
+        // Use the larger of the two (finer resolution), capped at 64 segments
+        const azSegments = Math.min(64, Math.max(2, azSegmentsAngular, azSegmentsArc));
+        const elSegments = Math.min(64, Math.max(2, elSegmentsAngular, elSegmentsArc));
 
         const apex = new THREE.Vector3(0, 0, 0);
 
