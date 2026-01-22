@@ -7,16 +7,20 @@ import * as THREE from 'three';
  */
 
 export class PlatformListPanel {
-    constructor({ simData, sceneManager, timeline, onPlatformSelect }) {
+    constructor({ simData, sceneManager, timeline, onPlatformSelect, onFovToggle, onRibbonToggle }) {
         this.simData = simData;
         this.sceneManager = sceneManager;
         this.timeline = timeline;
         this.onPlatformSelect = onPlatformSelect;
+        this.onFovToggle = onFovToggle;
+        this.onRibbonToggle = onRibbonToggle;
         this.element = null;
         this.listContainer = null;
         this.selectedId = null;           // Currently followed platform ID
         this.itemElements = new Map();    // Map of platform ID -> DOM element
         this.originElement = null;        // Origin item DOM element
+        this.fovStates = new Map();       // platformId -> boolean (default true)
+        this.ribbonStates = new Map();    // platformId -> boolean (default false)
 
         this.createPanel();
     }
@@ -82,7 +86,48 @@ export class PlatformListPanel {
         for (const [id, platform] of this.simData.platforms) {
             const item = document.createElement('div');
             item.className = 'platform-list-item';
-            item.textContent = id;
+
+            // Platform name (clickable)
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'platform-name';
+            nameSpan.textContent = id;
+
+            // Checkbox container
+            const checkboxContainer = document.createElement('div');
+            checkboxContainer.className = 'platform-checkboxes';
+
+            // FOV checkbox (default checked)
+            const fovCheckbox = document.createElement('input');
+            fovCheckbox.type = 'checkbox';
+            fovCheckbox.className = 'platform-fov-checkbox';
+            fovCheckbox.checked = true;
+            fovCheckbox.title = 'Show sensor FOV';
+            fovCheckbox.addEventListener('click', (e) => e.stopPropagation());
+            fovCheckbox.addEventListener('change', (e) => {
+                this.fovStates.set(id, e.target.checked);
+                if (this.onFovToggle) this.onFovToggle(id, e.target.checked);
+            });
+            this.fovStates.set(id, true);
+
+            // Ribbon checkbox (default unchecked)
+            const ribbonCheckbox = document.createElement('input');
+            ribbonCheckbox.type = 'checkbox';
+            ribbonCheckbox.className = 'platform-ribbon-checkbox';
+            ribbonCheckbox.checked = false;
+            ribbonCheckbox.title = 'Show trajectory ribbon';
+            ribbonCheckbox.addEventListener('click', (e) => e.stopPropagation());
+            ribbonCheckbox.addEventListener('change', (e) => {
+                this.ribbonStates.set(id, e.target.checked);
+                if (this.onRibbonToggle) this.onRibbonToggle(id, e.target.checked);
+            });
+            this.ribbonStates.set(id, false);
+
+            // Assemble: name | checkboxes
+            checkboxContainer.appendChild(fovCheckbox);
+            checkboxContainer.appendChild(ribbonCheckbox);
+            item.appendChild(nameSpan);
+            item.appendChild(checkboxContainer);
+
             item.addEventListener('click', () => this.focusOnPlatform(id));
             this.listContainer.appendChild(item);
             this.itemElements.set(id, item);
@@ -162,6 +207,10 @@ export class PlatformListPanel {
         this.originElement = null;
         this.selectedId = null;
 
+        // Clear state maps on reload
+        this.fovStates.clear();
+        this.ribbonStates.clear();
+
         // Re-add origin and platforms
         this.addOriginItem();
         this.populatePlatformList();
@@ -219,6 +268,8 @@ export class PlatformListPanel {
         this.element = null;
         this.listContainer = null;
         this.itemElements.clear();
+        this.fovStates.clear();
+        this.ribbonStates.clear();
         this.originElement = null;
         this.selectedId = null;
     }

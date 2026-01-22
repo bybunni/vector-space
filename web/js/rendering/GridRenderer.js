@@ -11,10 +11,17 @@ export class GridRenderer {
         this.sceneManager = sceneManager;
         this.gridGroup = new THREE.Group();
 
+        // Infinite ground plane elements (follow camera)
+        this.groundPlane = null;
+        this.gridHelper = null;
+
         this.createGrid();
         this.createAxes();
 
         this.sceneManager.add(this.gridGroup);
+
+        // Register update callback to follow camera
+        this.sceneManager.onAnimate(() => this.update());
     }
 
     /**
@@ -22,17 +29,18 @@ export class GridRenderer {
      */
     createGrid() {
         // Ground plane at Y=0 (sea level in three.js, Z=0 in NED)
-        const gridSize = 10000; // 10 km
-        const gridDivisions = 20;
+        // Large size to appear infinite - follows camera position
+        const gridSize = 1000000; // 1000 km - effectively infinite
+        const gridDivisions = 100;
 
-        const gridHelper = new THREE.GridHelper(
+        this.gridHelper = new THREE.GridHelper(
             gridSize,
             gridDivisions,
             0x444444, // Center line color
             0x222222  // Grid color
         );
 
-        this.gridGroup.add(gridHelper);
+        this.gridGroup.add(this.gridHelper);
 
         // Add a ground plane for better visualization
         const groundGeometry = new THREE.PlaneGeometry(gridSize, gridSize);
@@ -43,11 +51,30 @@ export class GridRenderer {
             opacity: 0.3
         });
 
-        const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
-        groundPlane.rotation.x = -Math.PI / 2; // Rotate to horizontal
-        groundPlane.position.y = -0.1; // Slightly below grid to avoid z-fighting
+        this.groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
+        this.groundPlane.rotation.x = -Math.PI / 2; // Rotate to horizontal
+        this.groundPlane.position.y = -0.1; // Slightly below grid to avoid z-fighting
 
-        this.gridGroup.add(groundPlane);
+        this.gridGroup.add(this.groundPlane);
+    }
+
+    /**
+     * Update ground plane to follow camera (creates infinite ground effect)
+     */
+    update() {
+        const camera = this.sceneManager.getCamera();
+        if (!camera) return;
+
+        // Move ground plane and grid to follow camera's horizontal position
+        // This creates the illusion of an infinite ground plane
+        if (this.groundPlane) {
+            this.groundPlane.position.x = camera.position.x;
+            this.groundPlane.position.z = camera.position.z;
+        }
+        if (this.gridHelper) {
+            this.gridHelper.position.x = camera.position.x;
+            this.gridHelper.position.z = camera.position.z;
+        }
     }
 
     /**

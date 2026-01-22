@@ -456,6 +456,9 @@ code {
 }
 
 .platform-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 8px 12px;
     cursor: pointer;
     transition: background 0.2s;
@@ -463,6 +466,29 @@ code {
     margin-bottom: 4px;
     font-size: 13px;
     color: #ccc;
+}
+
+.platform-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.platform-checkboxes {
+    display: flex;
+    gap: 6px;
+    margin-left: 8px;
+    flex-shrink: 0;
+}
+
+.platform-fov-checkbox,
+.platform-ribbon-checkbox {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    accent-color: #00d4ff;
+    margin: 0;
 }
 
 .platform-list-item:hover {

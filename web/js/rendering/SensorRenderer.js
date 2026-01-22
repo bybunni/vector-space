@@ -434,4 +434,18 @@ export class SensorRenderer {
     getSensorGroup(sensorId) {
         return this.sensorGroups.get(sensorId);
     }
+
+    /**
+     * Set visibility of all sensors belonging to a specific platform
+     * @param {string} platformId - Platform ID
+     * @param {boolean} visible - Whether sensors should be visible
+     */
+    setPlatformSensorVisibility(platformId, visible) {
+        for (const [sensorId, sensor] of this.simData.sensors) {
+            if (sensor.platformId === platformId) {
+                const group = this.sensorGroups.get(sensorId);
+                if (group) group.visible = visible;
+            }
+        }
+    }
 }

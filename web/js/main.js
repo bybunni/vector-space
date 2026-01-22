@@ -5,6 +5,7 @@ import { GridRenderer } from './rendering/GridRenderer.js';
 import { PlatformRenderer } from './rendering/PlatformRenderer.js';
 import { SensorRenderer } from './rendering/SensorRenderer.js';
 import { TrackRenderer } from './rendering/TrackRenderer.js';
+import { TrajectoryRibbonRenderer } from './rendering/TrajectoryRibbonRenderer.js';
 import { FileUpload } from './ui/FileUpload.js';
 import { TimeControls } from './ui/TimeControls.js';
 import { PlatformDetailsPanel } from './ui/PlatformDetailsPanel.js';
@@ -26,6 +27,7 @@ class VectorSpaceApp {
         this.platformRenderer = null;
         this.sensorRenderer = null;
         this.trackRenderer = null;
+        this.trajectoryRibbonRenderer = null;
 
         // Timeline controller (will be created after data load)
         this.timeline = null;
@@ -133,6 +135,9 @@ class VectorSpaceApp {
                 this.platformRenderer
             );
 
+            // Create trajectory ribbon renderer
+            this.trajectoryRibbonRenderer = new TrajectoryRibbonRenderer(this.sceneManager, simData);
+
             // Set up clickable objects for platform selection
             const platformGroups = this.platformRenderer.getAllPlatformGroups();
             this.sceneManager.setClickableObjects(platformGroups);
@@ -163,6 +168,16 @@ class VectorSpaceApp {
                         this.followedPlatformId = id;
                         if (id) {
                             this.selectPlatform(id);
+                        }
+                    },
+                    onFovToggle: (platformId, enabled) => {
+                        if (this.sensorRenderer) {
+                            this.sensorRenderer.setPlatformSensorVisibility(platformId, enabled);
+                        }
+                    },
+                    onRibbonToggle: (platformId, enabled) => {
+                        if (this.trajectoryRibbonRenderer) {
+                            this.trajectoryRibbonRenderer.setRibbonVisibility(platformId, enabled);
                         }
                     }
                 });
@@ -229,6 +244,11 @@ class VectorSpaceApp {
             this.trackRenderer = null;
         }
 
+        if (this.trajectoryRibbonRenderer) {
+            this.trajectoryRibbonRenderer.dispose();
+            this.trajectoryRibbonRenderer = null;
+        }
+
         // Clear platform selection
         if (this.platformDetailsPanel) {
             this.platformDetailsPanel.dispose();
@@ -290,6 +310,10 @@ class VectorSpaceApp {
 
         if (this.trackRenderer) {
             this.trackRenderer.update(currentTime);
+        }
+
+        if (this.trajectoryRibbonRenderer) {
+            this.trajectoryRibbonRenderer.update(currentTime);
         }
 
         // Update camera to follow selected platform
