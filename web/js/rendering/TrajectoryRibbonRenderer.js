@@ -256,7 +256,7 @@ export class TrajectoryRibbonRenderer {
      * Remove all ribbon objects from scene and clean up resources
      */
     dispose() {
-        for (const [platformId, state] of this.ribbonStates) {
+        for (const state of this.ribbonStates.values()) {
             if (state.mesh) {
                 this.sceneManager.remove(state.mesh);
 

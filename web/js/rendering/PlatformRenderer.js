@@ -52,7 +52,9 @@ export class PlatformRenderer {
 
         // Body frame axes (RGB = XYZ = North/Up/East)
         const axesHelper = new THREE.AxesHelper(100);
+        axesHelper.scale.set(this.platformScale, this.platformScale, this.platformScale);
         group.add(axesHelper);
+        group.userData.axesHelper = axesHelper;
 
         // Velocity arrow (will be updated dynamically)
         const arrowHelper = new THREE.ArrowHelper(
@@ -254,6 +256,10 @@ export class PlatformRenderer {
             const bodyMesh = group.userData.bodyMesh;
             if (bodyMesh) {
                 bodyMesh.scale.set(scale, scale, scale);
+            }
+            const axesHelper = group.userData.axesHelper;
+            if (axesHelper) {
+                axesHelper.scale.set(scale, scale, scale);
             }
         }
     }
