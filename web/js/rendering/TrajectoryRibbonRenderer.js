@@ -118,11 +118,7 @@ export class TrajectoryRibbonRenderer {
         if (Math.abs(rollDegrees) > 0.01) {
             const rollRad = THREE.MathUtils.degToRad(rollDegrees);
             const quaternion = new THREE.Quaternion().setFromAxisAngle(dir, rollRad);
-            const beforeY = wing.y;
             wing.applyQuaternion(quaternion);
-            if (Math.abs(wing.y - beforeY) > 0.01) {
-                console.log(`Roll applied: ${rollDegrees}deg, wing.y changed from ${beforeY.toFixed(3)} to ${wing.y.toFixed(3)}`);
-            }
         }
 
         return wing;
@@ -157,7 +153,6 @@ export class TrajectoryRibbonRenderer {
         const samples = [];
 
         // Collect position samples within time window
-        let debugOnce = true;
         for (let t = startTime; t <= currentTime; t += this.sampleInterval) {
             const state = platform.getStateAtTime(t);
             if (!state) continue;
@@ -165,11 +160,6 @@ export class TrajectoryRibbonRenderer {
             const pos = state.getPosition();
             const vel = state.getVelocity ? state.getVelocity() : null;
             const roll = state.getRoll ? state.getRoll() : 0;
-
-            if (debugOnce && Math.abs(roll) > 0.1) {
-                console.log(`Ribbon sample roll: ${roll.toFixed(1)} degrees for platform at t=${t}`);
-                debugOnce = false;
-            }
 
             samples.push({ pos, vel, roll, time: t });
         }
