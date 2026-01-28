@@ -23,6 +23,18 @@ body {
     z-index: 0;
 }
 
+/* Version Display */
+#version-display {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    font-size: 11px;
+    color: #666;
+    font-family: 'Courier New', monospace;
+    z-index: 1000;
+    pointer-events: none;
+}
+
 /* UI Container */
 #ui-container {
     position: fixed;

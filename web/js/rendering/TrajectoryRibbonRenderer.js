@@ -5,7 +5,9 @@ import * as THREE from 'three';
  * TrajectoryRibbonRenderer
  *
  * Renders wing-shaped ribbons along flight paths showing trajectory history.
- * Ribbons extend perpendicular to velocity direction, creating a "wing" effect.
+ * Ribbons extend perpendicular to the direction of travel, creating a "wing" effect.
+ * The ribbon rotates with the platform's roll angle, tracing the path of the
+ * aircraft's wings through space.
  */
 
 export class TrajectoryRibbonRenderer {
@@ -88,21 +90,39 @@ export class TrajectoryRibbonRenderer {
     }
 
     /**
-     * Compute perpendicular "wing" direction from velocity
-     * @param {THREE.Vector3} velocity - Velocity vector
-     * @returns {THREE.Vector3} - Unit vector perpendicular to velocity (horizontal plane)
+     * Compute perpendicular "wing" direction from flight direction
+     * @param {THREE.Vector3} flightDir - Direction of travel (will be normalized)
+     * @param {number} rollDegrees - Roll angle in degrees (positive = right wing down)
+     * @returns {THREE.Vector3} - Unit vector perpendicular to flight direction, rotated by roll
      */
-    computeWingDirection(velocity) {
-        // For ribbon perpendicular to velocity in horizontal plane
-        // Cross product with up vector gives horizontal perpendicular
-        const up = new THREE.Vector3(0, 1, 0);
-        const wing = new THREE.Vector3().crossVectors(velocity, up);
+    computeWingDirection(flightDir, rollDegrees = 0) {
+        // Normalize flight direction
+        const dir = flightDir.clone();
+        if (dir.lengthSq() < 0.001) {
+            return new THREE.Vector3(1, 0, 0);
+        }
+        dir.normalize();
 
-        // Handle case where velocity is nearly vertical
+        // Compute horizontal wing direction (perpendicular to flight in horizontal plane)
+        const up = new THREE.Vector3(0, 1, 0);
+        const wing = new THREE.Vector3().crossVectors(dir, up);
+
+        // Handle case where flight direction is nearly vertical
         if (wing.lengthSq() < 0.001) {
-            wing.set(1, 0, 0);  // Default to X direction
+            wing.set(1, 0, 0);
         } else {
             wing.normalize();
+        }
+
+        // Apply roll rotation around the flight direction axis
+        if (Math.abs(rollDegrees) > 0.01) {
+            const rollRad = THREE.MathUtils.degToRad(rollDegrees);
+            const quaternion = new THREE.Quaternion().setFromAxisAngle(dir, rollRad);
+            const beforeY = wing.y;
+            wing.applyQuaternion(quaternion);
+            if (Math.abs(wing.y - beforeY) > 0.01) {
+                console.log(`Roll applied: ${rollDegrees}deg, wing.y changed from ${beforeY.toFixed(3)} to ${wing.y.toFixed(3)}`);
+            }
         }
 
         return wing;
@@ -137,14 +157,21 @@ export class TrajectoryRibbonRenderer {
         const samples = [];
 
         // Collect position samples within time window
+        let debugOnce = true;
         for (let t = startTime; t <= currentTime; t += this.sampleInterval) {
             const state = platform.getStateAtTime(t);
             if (!state) continue;
 
             const pos = state.getPosition();
             const vel = state.getVelocity ? state.getVelocity() : null;
+            const roll = state.getRoll ? state.getRoll() : 0;
 
-            samples.push({ pos, vel, time: t });
+            if (debugOnce && Math.abs(roll) > 0.1) {
+                console.log(`Ribbon sample roll: ${roll.toFixed(1)} degrees for platform at t=${t}`);
+                debugOnce = false;
+            }
+
+            samples.push({ pos, vel, roll, time: t });
         }
 
         // Need at least 2 samples to form a ribbon
@@ -164,20 +191,21 @@ export class TrajectoryRibbonRenderer {
             // Always use position differences to compute wing direction
             // This ensures the ribbon is perpendicular to actual movement,
             // even if velocity data is incorrect or missing
+            // Roll is applied to tilt the ribbon with the platform's bank angle
             if (i < maxSamples - 1) {
                 // Use direction to next sample
                 const nextSample = samples[i + 1];
                 const dir = new THREE.Vector3().subVectors(nextSample.pos, sample.pos);
-                wingDir = this.computeWingDirection(dir);
+                wingDir = this.computeWingDirection(dir, sample.roll);
             } else if (i > 0) {
                 // Last sample: use direction from previous sample
                 const prevSample = samples[i - 1];
                 const dir = new THREE.Vector3().subVectors(sample.pos, prevSample.pos);
-                wingDir = this.computeWingDirection(dir);
+                wingDir = this.computeWingDirection(dir, sample.roll);
             } else {
                 // Single sample: fall back to velocity or default
                 if (sample.vel && sample.vel.lengthSq() > 0.01) {
-                    wingDir = this.computeWingDirection(sample.vel);
+                    wingDir = this.computeWingDirection(sample.vel, sample.roll);
                 } else {
                     wingDir = new THREE.Vector3(1, 0, 0);
                 }

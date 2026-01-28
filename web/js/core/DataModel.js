@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { CoordinateSystem } from './CoordinateSystem.js';
 
 /**
@@ -69,6 +70,23 @@ export class PlatformState {
             this.velEast,
             this.velDown
         );
+    }
+
+    /**
+     * Get roll angle in degrees, extracted from quaternion if interpolated
+     * @returns {number} Roll angle in degrees
+     */
+    getRoll() {
+        // If we have a pre-computed quaternion (interpolated state), extract roll from it
+        if (this._quaternion) {
+            // Extract Euler angles from quaternion using same order as nedEulerToQuaternion
+            // The quaternion was created with 'YZX' order: (rollRad, -yawRad, pitchRad)
+            const euler = new THREE.Euler().setFromQuaternion(this._quaternion, 'YZX');
+            // X component is roll
+            return THREE.MathUtils.radToDeg(euler.x);
+        }
+        // Otherwise return the raw roll value
+        return this.roll;
     }
 }
 
