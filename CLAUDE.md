@@ -23,6 +23,10 @@ A version number is displayed in the top-right corner of the UI (`web/index.html
 - Three.js uses Y-up: (X=North, Y=Up, Z=East)
 - Conversions are handled in `CoordinateSystem.js`
 
+## Agent Parallelism
+- Use parallel sub-agents for embarrassingly parallel tasks: searching multiple directories, reading multiple files, running independent checks
+- Example: when exploring the codebase, search `web/js/core/`, `web/js/rendering/`, and `web/js/ui/` concurrently rather than sequentially
+
 ## Common Commands
 ```bash
 # Serve locally (from project root)
