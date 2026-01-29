@@ -1,4 +1,5 @@
 import { CSVParser } from './core/CSVParser.js';
+import { SimulationMerger } from './core/SimulationMerger.js';
 import { TimelineController } from './core/TimelineController.js';
 import { SceneManager } from './rendering/SceneManager.js';
 import { GridRenderer } from './rendering/GridRenderer.js';
@@ -54,7 +55,7 @@ class VectorSpaceApp {
         // File upload handler
         this.fileUpload = new FileUpload(
             document.getElementById('file-input'),
-            (csvText, fileName) => this.onFileLoaded(csvText, fileName),
+            (files) => this.onFilesLoaded(files),
             (error) => this.onError(error)
         );
 
@@ -101,23 +102,29 @@ class VectorSpaceApp {
     }
 
     /**
-     * Handle CSV file load
-     * @param {string} csvText - CSV file contents
-     * @param {string} fileName - File name
+     * Handle multiple CSV files loaded
+     * @param {Array<{text: string, name: string}>} files - Array of file contents and names
      */
-    onFileLoaded(csvText, fileName) {
+    onFilesLoaded(files) {
         try {
-            this.showMessage(`Parsing ${fileName}...`);
+            const fileNames = files.map(f => f.name).join(', ');
+            this.showMessage(`Parsing ${fileNames}...`);
 
-            // Parse CSV
-            const simData = CSVParser.parse(csvText);
+            // Parse each CSV independently
+            const entries = files.map(({ text, name }) => ({
+                simData: CSVParser.parse(text),
+                fileName: name
+            }));
+
+            // Merge all parsed results
+            const simData = SimulationMerger.merge(entries);
 
             // Validate data
             if (simData.platforms.size === 0) {
                 throw new Error('No platforms found in CSV');
             }
 
-            this.showMessage(`Loaded ${simData.platforms.size} platforms, ${simData.sensors.size} sensors`);
+            this.showMessage(`Loaded ${simData.platforms.size} platforms, ${simData.sensors.size} sensors from ${files.length} file(s)`);
 
             // Clear previous renderers
             this.clearRenderers();

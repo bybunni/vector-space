@@ -8,7 +8,7 @@
 </head>
 <body>
     <!-- Version Display -->
-    <div id="version-display">v0.2.6</div>
+    <div id="version-display">v0.2.7</div>
 
     <!-- Main Canvas -->
     <canvas id="canvas"></canvas>
@@ -24,8 +24,8 @@
         <!-- File Upload -->
         <div id="file-upload-panel" class="panel">
             <h3>Data Source</h3>
-            <input type="file" id="file-input" accept=".csv" style="display: none;">
-            <button id="load-btn" class="btn">📁 Load CSV File</button>
+            <input type="file" id="file-input" accept=".csv" multiple style="display: none;">
+            <button id="load-btn" class="btn">📁 Load CSV File(s)</button>
             <button id="platform-list-btn" class="btn" disabled>Platforms</button>
             <p id="status-message" class="status">Load a CSV file to begin</p>
         </div>
