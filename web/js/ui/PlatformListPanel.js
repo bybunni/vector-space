@@ -7,13 +7,14 @@ import * as THREE from 'three';
  */
 
 export class PlatformListPanel {
-    constructor({ simData, sceneManager, timeline, onPlatformSelect, onFovToggle, onRibbonToggle }) {
+    constructor({ simData, sceneManager, timeline, onPlatformSelect, onFovToggle, onRibbonToggle, onFullTrailToggle }) {
         this.simData = simData;
         this.sceneManager = sceneManager;
         this.timeline = timeline;
         this.onPlatformSelect = onPlatformSelect;
         this.onFovToggle = onFovToggle;
         this.onRibbonToggle = onRibbonToggle;
+        this.onFullTrailToggle = onFullTrailToggle;
         this.element = null;
         this.listContainer = null;
         this.selectedId = null;           // Currently followed platform ID
@@ -21,6 +22,7 @@ export class PlatformListPanel {
         this.originElement = null;        // Origin item DOM element
         this.fovStates = new Map();       // platformId -> boolean (default true)
         this.ribbonStates = new Map();    // platformId -> boolean (default false)
+        this.fullTrailStates = new Map(); // platformId -> boolean (default false)
 
         this.createPanel();
     }
@@ -92,8 +94,14 @@ export class PlatformListPanel {
         ribbonLabel.textContent = 'Trail';
         ribbonLabel.title = 'Show trajectory ribbon';
 
+        const fullTrailLabel = document.createElement('span');
+        fullTrailLabel.className = 'platform-header-label';
+        fullTrailLabel.textContent = 'Full';
+        fullTrailLabel.title = 'Show full trajectory history';
+
         checkboxLabels.appendChild(fovLabel);
         checkboxLabels.appendChild(ribbonLabel);
+        checkboxLabels.appendChild(fullTrailLabel);
         headerRow.appendChild(nameLabel);
         headerRow.appendChild(checkboxLabels);
 
@@ -154,12 +162,38 @@ export class PlatformListPanel {
             ribbonCheckbox.addEventListener('change', (e) => {
                 this.ribbonStates.set(id, e.target.checked);
                 if (this.onRibbonToggle) this.onRibbonToggle(id, e.target.checked);
+                // Uncheck full trail when trail is disabled
+                if (!e.target.checked && fullTrailCheckbox.checked) {
+                    fullTrailCheckbox.checked = false;
+                    this.fullTrailStates.set(id, false);
+                    if (this.onFullTrailToggle) this.onFullTrailToggle(id, false);
+                }
             });
             this.ribbonStates.set(id, false);
+
+            // Full trail checkbox (default unchecked)
+            const fullTrailCheckbox = document.createElement('input');
+            fullTrailCheckbox.type = 'checkbox';
+            fullTrailCheckbox.className = 'platform-fulltrail-checkbox';
+            fullTrailCheckbox.checked = false;
+            fullTrailCheckbox.title = 'Show full trajectory history';
+            fullTrailCheckbox.addEventListener('click', (e) => e.stopPropagation());
+            fullTrailCheckbox.addEventListener('change', (e) => {
+                this.fullTrailStates.set(id, e.target.checked);
+                if (this.onFullTrailToggle) this.onFullTrailToggle(id, e.target.checked);
+                // Auto-enable trail when full trail is checked
+                if (e.target.checked && !ribbonCheckbox.checked) {
+                    ribbonCheckbox.checked = true;
+                    this.ribbonStates.set(id, true);
+                    if (this.onRibbonToggle) this.onRibbonToggle(id, true);
+                }
+            });
+            this.fullTrailStates.set(id, false);
 
             // Assemble: name | checkboxes
             checkboxContainer.appendChild(fovCheckbox);
             checkboxContainer.appendChild(ribbonCheckbox);
+            checkboxContainer.appendChild(fullTrailCheckbox);
             item.appendChild(nameSpan);
             item.appendChild(checkboxContainer);
 
@@ -245,6 +279,7 @@ export class PlatformListPanel {
         // Clear state maps on reload
         this.fovStates.clear();
         this.ribbonStates.clear();
+        this.fullTrailStates.clear();
 
         // Re-add column headers, origin and platforms
         this.addColumnHeaders();
@@ -306,6 +341,7 @@ export class PlatformListPanel {
         this.itemElements.clear();
         this.fovStates.clear();
         this.ribbonStates.clear();
+        this.fullTrailStates.clear();
         this.originElement = null;
         this.selectedId = null;
     }

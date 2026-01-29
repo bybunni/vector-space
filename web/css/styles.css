@@ -495,7 +495,8 @@ code {
 }
 
 .platform-fov-checkbox,
-.platform-ribbon-checkbox {
+.platform-ribbon-checkbox,
+.platform-fulltrail-checkbox {
     width: 14px;
     height: 14px;
     cursor: pointer;

@@ -16,21 +16,34 @@ export class TrajectoryRibbonRenderer {
         this.simData = simulationData;
 
         // Map of platform ID to ribbon state
-        this.ribbonStates = new Map();  // platformId -> { enabled: boolean, mesh: THREE.Mesh }
+        this.ribbonStates = new Map();  // platformId -> { enabled: boolean, mesh: THREE.Mesh, fullTrail: boolean }
 
         // Ribbon configuration
         this.historyDuration = 60000;   // 60 seconds of history in milliseconds
         this.ribbonWidth = 50;          // Half-width of ribbon (meters)
         this.sampleInterval = 100;      // Sample every 100ms for smooth ribbons
-        this.maxVertices = 1200;        // Max vertices (600 samples * 2 sides)
+        this.maxVertices = 12000;       // Max vertices (6000 samples * 2 sides) - supports long trails
 
         // Initialize all platforms as disabled
         for (const [platformId] of this.simData.platforms) {
             this.ribbonStates.set(platformId, {
                 enabled: false,
-                mesh: null
+                mesh: null,
+                fullTrail: false
             });
         }
+    }
+
+    /**
+     * Set full trail mode for a specific platform
+     * When enabled, shows entire trajectory history instead of fixed duration
+     * @param {string} platformId - Platform ID
+     * @param {boolean} enabled - Whether full trail mode should be enabled
+     */
+    setFullTrailMode(platformId, enabled) {
+        const state = this.ribbonStates.get(platformId);
+        if (!state) return;
+        state.fullTrail = enabled;
     }
 
     /**
@@ -135,7 +148,7 @@ export class TrajectoryRibbonRenderer {
             const platform = this.simData.getPlatform(platformId);
             if (!platform) continue;
 
-            this.updateRibbonGeometry(state.mesh, platform, currentTime);
+            this.updateRibbonGeometry(state.mesh, platform, currentTime, state.fullTrail);
         }
     }
 
@@ -144,16 +157,24 @@ export class TrajectoryRibbonRenderer {
      * @param {THREE.Mesh} mesh
      * @param {Platform} platform
      * @param {number} currentTime
+     * @param {boolean} fullTrail - If true, show entire history from start
      */
-    updateRibbonGeometry(mesh, platform, currentTime) {
+    updateRibbonGeometry(mesh, platform, currentTime, fullTrail = false) {
         const geometry = mesh.geometry;
         const positions = geometry.attributes.position.array;
 
-        const startTime = currentTime - this.historyDuration;
+        // Determine start time: full history or fixed duration
+        const startTime = fullTrail ? this.simData.getTimeRange().start : (currentTime - this.historyDuration);
         const samples = [];
 
+        // Adaptive sample interval: use larger interval for longer time spans
+        // to avoid exceeding vertex limits while maintaining smooth appearance
+        const duration = currentTime - startTime;
+        const targetSamples = this.maxVertices / 2 - 10;  // Leave some margin
+        const adaptiveInterval = Math.max(this.sampleInterval, duration / targetSamples);
+
         // Collect position samples within time window
-        for (let t = startTime; t <= currentTime; t += this.sampleInterval) {
+        for (let t = startTime; t <= currentTime; t += adaptiveInterval) {
             const state = platform.getStateAtTime(t);
             if (!state) continue;
 

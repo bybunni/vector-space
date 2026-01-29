@@ -179,6 +179,11 @@ class VectorSpaceApp {
                         if (this.trajectoryRibbonRenderer) {
                             this.trajectoryRibbonRenderer.setRibbonVisibility(platformId, enabled);
                         }
+                    },
+                    onFullTrailToggle: (platformId, enabled) => {
+                        if (this.trajectoryRibbonRenderer) {
+                            this.trajectoryRibbonRenderer.setFullTrailMode(platformId, enabled);
+                        }
                     }
                 });
             }
