@@ -9,7 +9,7 @@ import { TrackRenderer } from './rendering/TrackRenderer.js';
 import { TrajectoryRibbonRenderer } from './rendering/TrajectoryRibbonRenderer.js';
 import { FileUpload } from './ui/FileUpload.js';
 import { TimeControls } from './ui/TimeControls.js';
-import { PlatformDetailsPanel } from './ui/PlatformDetailsPanel.js';
+import { PlatformDetailsPanel } from './ui/PlatformDetailsPanel.js?v=2';
 import { PlatformListPanel } from './ui/PlatformListPanel.js';
 import { CustomDataPanel } from './ui/CustomDataPanel.js';
 import { LinePlotPanel } from './ui/LinePlotPanel.js';
