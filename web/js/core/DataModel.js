@@ -29,6 +29,9 @@ export class PlatformState {
         this.pitch = data.pitch;
         this.yaw = data.yaw;
 
+        // Custom fields from extra CSV columns
+        this.customFields = data.customFields || {};
+
         // Lazy-computed quaternion
         this._quaternion = null;
     }
@@ -171,6 +174,21 @@ export class Platform {
         const q2 = state2.getQuaternion();
         interpolated._quaternion = CoordinateSystem.slerpQuaternions(q1, q2, t);
 
+        // Interpolate custom fields
+        const allKeys = new Set([
+            ...Object.keys(state1.customFields),
+            ...Object.keys(state2.customFields)
+        ]);
+        for (const key of allKeys) {
+            const v1 = state1.customFields[key];
+            const v2 = state2.customFields[key];
+            if (typeof v1 === 'number' && typeof v2 === 'number') {
+                interpolated.customFields[key] = v1 + t * (v2 - v1);
+            } else {
+                interpolated.customFields[key] = v1 !== undefined ? v1 : v2;
+            }
+        }
+
         return interpolated;
     }
 
@@ -281,6 +299,15 @@ export class SimulationData {
         this.platforms = new Map(); // entityId -> Platform
         this.sensors = new Map();   // entityId -> Sensor
         this.timestamps = [];        // Sorted array of unique timestamps
+        this.customColumnNames = []; // Extra CSV column names beyond standard fields
+    }
+
+    /**
+     * Set custom column names discovered during CSV parsing
+     * @param {Array<string>} names
+     */
+    setCustomColumnNames(names) {
+        this.customColumnNames = names;
     }
 
     /**

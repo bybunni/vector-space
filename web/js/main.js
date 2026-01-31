@@ -11,6 +11,7 @@ import { FileUpload } from './ui/FileUpload.js';
 import { TimeControls } from './ui/TimeControls.js';
 import { PlatformDetailsPanel } from './ui/PlatformDetailsPanel.js';
 import { PlatformListPanel } from './ui/PlatformListPanel.js';
+import { CustomDataPanel } from './ui/CustomDataPanel.js';
 
 /**
  * Main application class
@@ -39,6 +40,10 @@ class VectorSpaceApp {
         this.platformDetailsPanel = null;
         this.platformListPanel = null;
         this.simData = null;
+
+        // Custom data panel
+        this.customDataPanel = null;
+        this.enabledCustomColumns = new Set();
 
         // Camera follow mode
         this.followedPlatformId = null;
@@ -196,6 +201,9 @@ class VectorSpaceApp {
             }
             this.platformListPanel.show();
 
+            // Set up custom columns panel in left sidebar
+            this.setupCustomColumnsPanel(simData);
+
             // Enable platform list toggle button
             const platformListBtn = document.getElementById('platform-list-btn');
             if (platformListBtn) {
@@ -265,6 +273,15 @@ class VectorSpaceApp {
         if (this.platformDetailsPanel) {
             this.platformDetailsPanel.dispose();
             this.platformDetailsPanel = null;
+        }
+        if (this.customDataPanel) {
+            this.customDataPanel.dispose();
+            this.customDataPanel = null;
+        }
+        this.enabledCustomColumns = new Set();
+        const customColumnsPanel = document.getElementById('custom-columns-panel');
+        if (customColumnsPanel) {
+            customColumnsPanel.style.display = 'none';
         }
         this.selectedPlatformId = null;
         this.followedPlatformId = null;
@@ -343,6 +360,11 @@ class VectorSpaceApp {
         // Update platform details panel
         if (this.platformDetailsPanel && this.platformDetailsPanel.isVisible()) {
             this.platformDetailsPanel.update(currentTime);
+        }
+
+        // Update custom data panel
+        if (this.customDataPanel && this.customDataPanel.isVisible()) {
+            this.customDataPanel.update(currentTime);
         }
     }
 
@@ -446,6 +468,9 @@ class VectorSpaceApp {
         if (this.timeline) {
             this.platformDetailsPanel.update(this.timeline.getCurrentTime());
         }
+
+        // Create/update custom data panel if columns are enabled
+        this.updateCustomDataPanel(platform);
     }
 
     /**
@@ -455,7 +480,109 @@ class VectorSpaceApp {
         if (this.platformDetailsPanel) {
             this.platformDetailsPanel.hide();
         }
+        if (this.customDataPanel) {
+            this.customDataPanel.hide();
+        }
         this.selectedPlatformId = null;
+    }
+
+    /**
+     * Populate the custom columns checkbox panel in the left sidebar
+     * @param {SimulationData} simData
+     */
+    setupCustomColumnsPanel(simData) {
+        const panel = document.getElementById('custom-columns-panel');
+        const list = document.getElementById('custom-columns-list');
+        if (!panel || !list) return;
+
+        list.innerHTML = '';
+        this.enabledCustomColumns = new Set();
+
+        if (simData.customColumnNames.length === 0) {
+            panel.style.display = 'none';
+            return;
+        }
+
+        for (const name of simData.customColumnNames) {
+            const row = document.createElement('label');
+            row.className = 'custom-column-row';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'custom-column-checkbox';
+            checkbox.dataset.columnName = name;
+            checkbox.addEventListener('change', () => {
+                if (checkbox.checked) {
+                    this.enabledCustomColumns.add(name);
+                } else {
+                    this.enabledCustomColumns.delete(name);
+                }
+                this.onCustomColumnsChanged();
+            });
+
+            const label = document.createElement('span');
+            label.textContent = name;
+
+            row.appendChild(checkbox);
+            row.appendChild(label);
+            list.appendChild(row);
+        }
+
+        panel.style.display = 'block';
+    }
+
+    /**
+     * Handle custom column selection changes
+     */
+    onCustomColumnsChanged() {
+        if (this.enabledCustomColumns.size === 0) {
+            // No columns enabled — dispose panel
+            if (this.customDataPanel) {
+                this.customDataPanel.dispose();
+                this.customDataPanel = null;
+            }
+            return;
+        }
+
+        if (!this.selectedPlatformId || !this.simData) {
+            return;
+        }
+
+        const platform = this.simData.getPlatform(this.selectedPlatformId);
+        if (!platform) return;
+
+        this.updateCustomDataPanel(platform);
+    }
+
+    /**
+     * Create or update the custom data panel for a platform
+     * @param {Platform} platform
+     */
+    updateCustomDataPanel(platform) {
+        if (this.enabledCustomColumns.size === 0) {
+            if (this.customDataPanel) {
+                this.customDataPanel.dispose();
+                this.customDataPanel = null;
+            }
+            return;
+        }
+
+        if (this.customDataPanel) {
+            // Update existing panel with new platform or columns
+            this.customDataPanel.platform = platform;
+            this.customDataPanel.setEnabledColumns(this.enabledCustomColumns);
+        } else {
+            this.customDataPanel = new CustomDataPanel(
+                platform,
+                this.simData,
+                this.enabledCustomColumns
+            );
+        }
+
+        this.customDataPanel.show();
+        if (this.timeline) {
+            this.customDataPanel.update(this.timeline.getCurrentTime());
+        }
     }
 }
 

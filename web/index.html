@@ -8,7 +8,7 @@
 </head>
 <body>
     <!-- Version Display -->
-    <div id="version-display">v0.2.7</div>
+    <div id="version-display">v0.2.9</div>
 
     <!-- Main Canvas -->
     <canvas id="canvas"></canvas>
@@ -28,6 +28,12 @@
             <button id="load-btn" class="btn">📁 Load CSV File(s)</button>
             <button id="platform-list-btn" class="btn" disabled>Platforms</button>
             <p id="status-message" class="status">Load a CSV file to begin</p>
+        </div>
+
+        <!-- Custom Columns -->
+        <div id="custom-columns-panel" class="panel" style="display: none;">
+            <h3>Custom Columns</h3>
+            <div id="custom-columns-list"></div>
         </div>
 
         <!-- Time Controls -->
@@ -103,6 +109,7 @@
                 <li>test_multi_platform.csv</li>
             </ul>
         </div>
+
     </div>
 
     <!-- Import Maps for three.js -->

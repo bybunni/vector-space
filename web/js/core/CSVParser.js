@@ -7,6 +7,16 @@ import { Platform, PlatformState, Sensor, SimulationData } from './DataModel.js'
  */
 
 export class CSVParser {
+    static STANDARD_COLUMNS = new Set([
+        'timestamp', 'entity_type', 'entity_id', 'platform_id',
+        'pos_north', 'pos_east', 'pos_down',
+        'vel_north', 'vel_east', 'vel_down',
+        'roll', 'pitch', 'yaw',
+        'sensor_type', 'azimuth_fov', 'elevation_fov',
+        'range_min', 'range_max',
+        'mount_roll', 'mount_pitch', 'mount_yaw', 'mount_type'
+    ]);
+
     /**
      * Parse CSV text into SimulationData
      * @param {string} csvText - Raw CSV text
@@ -27,6 +37,14 @@ export class CSVParser {
         // Validate required columns
         this.validateColumns(columnMap);
 
+        // Detect custom (non-standard) columns
+        const customColumnNames = [];
+        for (const name of columnMap.keys()) {
+            if (!this.STANDARD_COLUMNS.has(name)) {
+                customColumnNames.push(name);
+            }
+        }
+
         // Parse data rows
         const simData = new SimulationData();
 
@@ -41,7 +59,7 @@ export class CSVParser {
                 const row = this.mapRowToObject(values, columnMap);
 
                 if (row.entity_type === 'platform') {
-                    this.parsePlatformRow(row, simData);
+                    this.parsePlatformRow(row, simData, customColumnNames);
                 } else if (row.entity_type === 'sensor') {
                     this.parseSensorRow(row, simData);
                 } else {
@@ -54,6 +72,9 @@ export class CSVParser {
 
         // Finalize data (sort, link sensors to platforms, etc.)
         simData.finalize();
+
+        // Store custom column names
+        simData.setCustomColumnNames(customColumnNames);
 
         return simData;
     }
@@ -156,8 +177,9 @@ export class CSVParser {
      * Parse platform row and add to simulation data
      * @param {Object} row - Row data
      * @param {SimulationData} simData - Simulation data container
+     * @param {Array<string>} customColumnNames - Extra column names to extract
      */
-    static parsePlatformRow(row, simData) {
+    static parsePlatformRow(row, simData, customColumnNames = []) {
         const entityId = row.entity_id;
 
         // Get or create platform
@@ -165,6 +187,15 @@ export class CSVParser {
         if (!platform) {
             platform = new Platform(entityId);
             simData.addPlatform(platform);
+        }
+
+        // Extract custom field values
+        const customFields = {};
+        for (const name of customColumnNames) {
+            const raw = row[name];
+            if (raw === null || raw === undefined || raw === '') continue;
+            const num = parseFloat(raw);
+            customFields[name] = isNaN(num) ? raw : num;
         }
 
         // Create platform state
@@ -178,7 +209,8 @@ export class CSVParser {
             vel_down: this.parseFloat(row.vel_down, 'vel_down'),
             roll: this.parseFloat(row.roll, 'roll'),
             pitch: this.parseFloat(row.pitch, 'pitch'),
-            yaw: this.parseFloat(row.yaw, 'yaw')
+            yaw: this.parseFloat(row.yaw, 'yaw'),
+            customFields: customFields
         });
 
         platform.addState(state);

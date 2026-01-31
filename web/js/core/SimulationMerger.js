@@ -67,6 +67,15 @@ export class SimulationMerger {
             }
         }
 
+        // Union all custom column names from entries
+        const customColumnSet = new Set();
+        for (const { simData } of entries) {
+            for (const name of simData.customColumnNames) {
+                customColumnSet.add(name);
+            }
+        }
+        merged.setCustomColumnNames(Array.from(customColumnSet));
+
         merged.finalize();
         return merged;
     }
