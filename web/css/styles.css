@@ -627,11 +627,16 @@ code {
 
 /* Plot Checkbox (inline in details rows) */
 .plot-checkbox {
-    width: 12px;
-    height: 12px;
+    -webkit-appearance: checkbox;
+    appearance: checkbox;
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    min-height: 14px;
     cursor: pointer;
     accent-color: #00d4ff;
-    margin: 0 4px 0 0;
+    margin: 0 6px 0 0;
     flex-shrink: 0;
 }
 
