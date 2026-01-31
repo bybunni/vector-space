@@ -158,15 +158,15 @@ export class MinimapPanel {
             { x: size * 0.6, y: size * 0.5 }
         ];
 
-        // Rotate each point clockwise by angle
-        // clockwise 2D rotation: x' = x*cos + y*sin, y' = -x*sin + y*cos
+        // Rotate clockwise visually on canvas (Y-down).
+        // Standard CCW matrix gives visual CW rotation when canvas Y is inverted.
         const cos = Math.cos(angle);
         const sin = Math.sin(angle);
 
         ctx.beginPath();
         for (let i = 0; i < pts.length; i++) {
-            const rx = pts[i].x * cos + pts[i].y * sin;
-            const ry = -pts[i].x * sin + pts[i].y * cos;
+            const rx = pts[i].x * cos - pts[i].y * sin;
+            const ry = pts[i].x * sin + pts[i].y * cos;
             if (i === 0) ctx.moveTo(cx + rx, cy + ry);
             else ctx.lineTo(cx + rx, cy + ry);
         }
