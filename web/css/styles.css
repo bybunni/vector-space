@@ -41,12 +41,13 @@ body {
     top: 0;
     left: 0;
     z-index: 10;
-    pointer-events: none;
-    width: 100vw;
+    pointer-events: auto;
+    width: 370px;
     height: 100vh;
     display: flex;
     flex-direction: column;
     padding: 20px;
+    overflow-y: auto;
 }
 
 /* Panels */

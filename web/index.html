@@ -8,7 +8,7 @@
 </head>
 <body>
     <!-- Version Display -->
-    <div id="version-display">v0.2.10</div>
+    <div id="version-display">v0.2.12</div>
 
     <!-- Main Canvas -->
     <canvas id="canvas"></canvas>
@@ -71,43 +71,6 @@
             <div class="control-group">
                 <p id="time-display" class="time-display">0.000s (00:00:00.000)</p>
             </div>
-        </div>
-
-        <!-- Info Panel -->
-        <div id="info-panel" class="panel">
-            <h3>Legend</h3>
-            <ul class="legend">
-                <li><span class="legend-color" style="background: #ff6600;"></span> Platform (Flying Dorito)</li>
-                <li><span class="legend-color" style="background: #ffff00;"></span> Velocity Vector</li>
-                <li><span class="legend-color" style="background: #00ff00;"></span> Radar Sensor</li>
-                <li><span class="legend-color" style="background: #0088ff;"></span> Camera Sensor</li>
-                <li><span class="legend-color" style="background: #ff8800;"></span> LiDAR Sensor</li>
-            </ul>
-            <h3>Controls</h3>
-            <ul class="controls-help">
-                <li><strong>Left Mouse:</strong> Rotate view</li>
-                <li><strong>Right Mouse:</strong> Pan view</li>
-                <li><strong>Scroll:</strong> Zoom in/out</li>
-            </ul>
-            <h3>Coordinate System</h3>
-            <ul class="legend">
-                <li><span class="legend-color" style="background: #ff0000;"></span> North (X-axis)</li>
-                <li><span class="legend-color" style="background: #00ff00;"></span> Up (Y-axis)</li>
-                <li><span class="legend-color" style="background: #0000ff;"></span> East (Z-axis)</li>
-            </ul>
-        </div>
-
-        <!-- Test Files -->
-        <div id="test-files-panel" class="panel">
-            <h3>Test Files</h3>
-            <p class="info-text">Sample CSV files available in <code>web/data/</code>:</p>
-            <ul class="file-list">
-                <li>test_straight_line.csv</li>
-                <li>test_turning.csv</li>
-                <li>test_sensors.csv</li>
-                <li>test_stabilized_gimbal.csv</li>
-                <li>test_multi_platform.csv</li>
-            </ul>
         </div>
 
     </div>
