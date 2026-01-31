@@ -564,8 +564,8 @@ code {
 /* Custom Data Panel (right side) */
 #custom-data-panel {
     position: fixed;
-    top: 340px;
-    right: 20px;
+    top: 20px;
+    right: 320px;
     max-width: 280px;
     max-height: 300px;
     overflow-y: auto;
