@@ -12,6 +12,8 @@ export class CustomDataPanel {
         this.element = null;
         this.valueElements = {};
         this.rowContainer = null;
+        this.onPlotToggle = null;
+        this.activePlotKeys = new Set();
 
         this.createPanel();
     }
@@ -54,6 +56,18 @@ export class CustomDataPanel {
             const row = document.createElement('div');
             row.className = 'details-row';
 
+            const plotKey = `custom:${name}`;
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'plot-checkbox';
+            checkbox.title = `Plot ${name}`;
+            checkbox.checked = this.activePlotKeys.has(plotKey);
+            checkbox.addEventListener('change', () => {
+                if (this.onPlotToggle) {
+                    this.onPlotToggle(plotKey, 'custom', name, checkbox.checked);
+                }
+            });
+
             const label = document.createElement('span');
             label.className = 'details-label';
             label.textContent = name;
@@ -64,6 +78,7 @@ export class CustomDataPanel {
 
             this.valueElements[name] = value;
 
+            row.appendChild(checkbox);
             row.appendChild(label);
             row.appendChild(value);
             this.rowContainer.appendChild(row);

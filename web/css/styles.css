@@ -623,6 +623,103 @@ code {
     text-align: right;
 }
 
+/* Plot Checkbox (inline in details rows) */
+.plot-checkbox {
+    width: 12px;
+    height: 12px;
+    cursor: pointer;
+    accent-color: #00d4ff;
+    margin: 0 4px 0 0;
+    flex-shrink: 0;
+}
+
+/* Line Plot Panel */
+#line-plot-panel {
+    position: fixed;
+    top: 20px;
+    right: 620px;
+    max-width: 300px;
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 100;
+    background: rgba(20, 20, 30, 0.95);
+    border: 1px solid rgba(100, 100, 200, 0.6);
+}
+
+#line-plot-panel .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(100, 100, 150, 0.3);
+}
+
+#line-plot-panel .panel-header h3 {
+    margin: 0;
+}
+
+#line-plot-panel .close-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 5px;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+#line-plot-panel .close-btn:hover {
+    color: #ff4444;
+}
+
+.plot-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(100, 100, 150, 0.2);
+}
+
+.plot-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 9px;
+    color: #aaa;
+}
+
+.plot-legend-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.plot-legend-name {
+    max-width: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.plot-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.plot-canvas-wrapper {
+    line-height: 0;
+}
+
+.plot-canvas-wrapper canvas {
+    border-radius: 3px;
+}
+
 /* Custom Columns Panel (left sidebar) */
 #custom-columns-panel .custom-column-row {
     display: flex;

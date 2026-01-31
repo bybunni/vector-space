@@ -12,6 +12,8 @@ export class PlatformDetailsPanel {
         this.simData = simData;
         this.element = null;
         this.valueElements = {};
+        this.onPlotToggle = null;
+        this.checkboxElements = {};
 
         this.createPanel();
     }
@@ -128,6 +130,18 @@ export class PlatformDetailsPanel {
         const row = document.createElement('div');
         row.className = 'details-row' + (highlight ? ' highlight' : '');
 
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'plot-checkbox';
+        checkbox.title = `Plot ${label}`;
+        checkbox.addEventListener('change', () => {
+            const plotKey = `standard:${key}`;
+            if (this.onPlotToggle) {
+                this.onPlotToggle(plotKey, 'standard', key, checkbox.checked);
+            }
+        });
+        this.checkboxElements[key] = checkbox;
+
         const labelEl = document.createElement('span');
         labelEl.className = 'details-label';
         labelEl.textContent = label;
@@ -138,10 +152,22 @@ export class PlatformDetailsPanel {
 
         this.valueElements[key] = valueEl;
 
+        row.appendChild(checkbox);
         row.appendChild(labelEl);
         row.appendChild(valueEl);
 
         return row;
+    }
+
+    /**
+     * Set checkbox state for a given key
+     * @param {string} key
+     * @param {boolean} checked
+     */
+    setCheckboxState(key, checked) {
+        if (this.checkboxElements[key]) {
+            this.checkboxElements[key].checked = checked;
+        }
     }
 
     /**

@@ -12,6 +12,7 @@ import { TimeControls } from './ui/TimeControls.js';
 import { PlatformDetailsPanel } from './ui/PlatformDetailsPanel.js';
 import { PlatformListPanel } from './ui/PlatformListPanel.js';
 import { CustomDataPanel } from './ui/CustomDataPanel.js';
+import { LinePlotPanel } from './ui/LinePlotPanel.js';
 
 /**
  * Main application class
@@ -44,6 +45,9 @@ class VectorSpaceApp {
         // Custom data panel
         this.customDataPanel = null;
         this.enabledCustomColumns = new Set();
+
+        // Line plot panel
+        this.linePlotPanel = null;
 
         // Camera follow mode
         this.followedPlatformId = null;
@@ -278,6 +282,10 @@ class VectorSpaceApp {
             this.customDataPanel.dispose();
             this.customDataPanel = null;
         }
+        if (this.linePlotPanel) {
+            this.linePlotPanel.dispose();
+            this.linePlotPanel = null;
+        }
         this.enabledCustomColumns = new Set();
         const customColumnsPanel = document.getElementById('custom-columns-panel');
         if (customColumnsPanel) {
@@ -365,6 +373,11 @@ class VectorSpaceApp {
         // Update custom data panel
         if (this.customDataPanel && this.customDataPanel.isVisible()) {
             this.customDataPanel.update(currentTime);
+        }
+
+        // Update line plot panel
+        if (this.linePlotPanel) {
+            this.linePlotPanel.update(currentTime);
         }
     }
 
@@ -463,6 +476,20 @@ class VectorSpaceApp {
         // Create new panel
         this.selectedPlatformId = platformId;
         this.platformDetailsPanel = new PlatformDetailsPanel(platform, this.simData);
+        this.platformDetailsPanel.onPlotToggle = (plotKey, fieldType, fieldName, checked) => {
+            this.onPlotToggle(plotKey, fieldType, fieldName, checked);
+        };
+
+        // Restore checkbox states from active plots
+        if (this.linePlotPanel) {
+            this.linePlotPanel.setSelectedPlatform(platformId);
+            for (const plotKey of this.linePlotPanel.getActivePlotKeys()) {
+                if (plotKey.startsWith('standard:')) {
+                    const key = plotKey.substring('standard:'.length);
+                    this.platformDetailsPanel.setCheckboxState(key, true);
+                }
+            }
+        }
 
         // Update immediately with current time
         if (this.timeline) {
@@ -471,6 +498,35 @@ class VectorSpaceApp {
 
         // Create/update custom data panel if columns are enabled
         this.updateCustomDataPanel(platform);
+    }
+
+    /**
+     * Handle plot toggle from details or custom data panels
+     * @param {string} plotKey
+     * @param {string} fieldType
+     * @param {string} fieldName
+     * @param {boolean} checked
+     */
+    onPlotToggle(plotKey, fieldType, fieldName, checked) {
+        if (checked) {
+            if (!this.linePlotPanel) {
+                this.linePlotPanel = new LinePlotPanel(this.simData);
+            }
+            this.linePlotPanel.setSelectedPlatform(this.selectedPlatformId);
+            this.linePlotPanel.addPlot(plotKey, fieldType, fieldName);
+        } else {
+            if (this.linePlotPanel) {
+                this.linePlotPanel.removePlot(plotKey);
+            }
+        }
+        // Keep custom data panel activePlotKeys in sync
+        if (this.customDataPanel) {
+            if (checked) {
+                this.customDataPanel.activePlotKeys.add(plotKey);
+            } else {
+                this.customDataPanel.activePlotKeys.delete(plotKey);
+            }
+        }
     }
 
     /**
@@ -576,6 +632,16 @@ class VectorSpaceApp {
                 platform,
                 this.simData,
                 this.enabledCustomColumns
+            );
+        }
+
+        // Wire plot toggle callback and sync active plot keys
+        this.customDataPanel.onPlotToggle = (plotKey, fieldType, fieldName, checked) => {
+            this.onPlotToggle(plotKey, fieldType, fieldName, checked);
+        };
+        if (this.linePlotPanel) {
+            this.customDataPanel.activePlotKeys = new Set(
+                [...this.linePlotPanel.getActivePlotKeys()].filter(k => k.startsWith('custom:'))
             );
         }
 
