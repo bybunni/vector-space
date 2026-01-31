@@ -745,3 +745,31 @@ code {
     accent-color: #00d4ff;
     margin: 0;
 }
+
+/* Minimap Panel */
+#minimap-panel {
+    position: fixed;
+    bottom: 20px;
+    left: 390px;
+    z-index: 100;
+    background: rgba(20, 20, 30, 0.95);
+    border: 1px solid rgba(100, 100, 200, 0.6);
+    border-radius: 8px;
+    padding: 8px;
+    pointer-events: auto;
+}
+
+.minimap-title {
+    font-size: 10px;
+    color: #00d4ff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.minimap-canvas {
+    display: block;
+    border-radius: 3px;
+}

@@ -13,6 +13,7 @@ import { PlatformDetailsPanel } from './ui/PlatformDetailsPanel.js';
 import { PlatformListPanel } from './ui/PlatformListPanel.js';
 import { CustomDataPanel } from './ui/CustomDataPanel.js';
 import { LinePlotPanel } from './ui/LinePlotPanel.js';
+import { MinimapPanel } from './ui/MinimapPanel.js';
 
 /**
  * Main application class
@@ -48,6 +49,9 @@ class VectorSpaceApp {
 
         // Line plot panel
         this.linePlotPanel = null;
+
+        // Minimap panel
+        this.minimapPanel = null;
 
         // Camera follow mode
         this.followedPlatformId = null;
@@ -217,6 +221,9 @@ class VectorSpaceApp {
             // Enable platform scale slider
             this.platformScaleSlider.disabled = false;
 
+            // Create minimap panel (always visible)
+            this.minimapPanel = new MinimapPanel(simData);
+
             // Update message
             const timeRange = simData.getTimeRange();
             const duration = (timeRange.end - timeRange.start) / 1000;
@@ -285,6 +292,10 @@ class VectorSpaceApp {
         if (this.linePlotPanel) {
             this.linePlotPanel.dispose();
             this.linePlotPanel = null;
+        }
+        if (this.minimapPanel) {
+            this.minimapPanel.dispose();
+            this.minimapPanel = null;
         }
         this.enabledCustomColumns = new Set();
         const customColumnsPanel = document.getElementById('custom-columns-panel');
@@ -378,6 +389,11 @@ class VectorSpaceApp {
         // Update line plot panel
         if (this.linePlotPanel) {
             this.linePlotPanel.update(currentTime);
+        }
+
+        // Update minimap
+        if (this.minimapPanel) {
+            this.minimapPanel.update(currentTime);
         }
     }
 
@@ -480,6 +496,11 @@ class VectorSpaceApp {
             this.onPlotToggle(plotKey, fieldType, fieldName, checked);
         };
 
+        // Update minimap selection
+        if (this.minimapPanel) {
+            this.minimapPanel.setSelectedPlatform(platformId);
+        }
+
         // Restore checkbox states from active plots
         if (this.linePlotPanel) {
             this.linePlotPanel.setSelectedPlatform(platformId);
@@ -538,6 +559,9 @@ class VectorSpaceApp {
         }
         if (this.customDataPanel) {
             this.customDataPanel.hide();
+        }
+        if (this.minimapPanel) {
+            this.minimapPanel.setSelectedPlatform(null);
         }
         this.selectedPlatformId = null;
     }
